@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-theme-primary: var(--theme-primary, #ffffff);
+  --color-theme-secondary: var(--theme-secondary, #000000);
+  --color-accent: #2FB8A5;
+}
+
+:root {
+  --theme-primary: #ffffff;
+  --theme-secondary: #000000;
+}
+
+.dark {
+  --theme-primary: #000000;
+  --theme-secondary: #ffffff;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

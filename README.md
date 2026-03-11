@@ -1,11 +1,18 @@
-<div align="center">
+# GlowGuide AI
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+A neutral, privacy-first skincare assistant.
 
-  <h1>Built with AI Studio</h2>
+## Features
+- **Anonymous Routine Generator**: Get a barrier-focused routine based on your skin type and concerns.
+- **Ingredient Analyzer**: Understand product compatibility without the marketing hype.
+- **Long-term Tracker (Stub)**: A gated dashboard for saved data and daily check-ins.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Tech Stack
+- **Frontend**: React, Tailwind CSS, Motion, Lucide Icons.
+- **Backend**: Express, SQLite (better-sqlite3).
+- **AI**: Google Gemini API.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+## Setup
+1. Install dependencies: `npm install`
+2. Set `GEMINI_API_KEY` in your environment.
+3. Start development: `npm run dev`
