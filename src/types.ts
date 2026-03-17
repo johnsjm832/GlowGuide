@@ -82,6 +82,7 @@ export interface ComparisonResponse {
 export interface User {
   id: number;
   email: string;
+  name?: string;
   token: string;
   theme_primary_color?: string;
   theme_secondary_color?: string;
@@ -89,14 +90,42 @@ export interface User {
   skinType?: string;
   sensitivity?: string;
   concerns?: string[];
+  breakoutFrequency?: string;
+  routineSize?: string;
+  avoidIngredients?: string[];
+  sunscreenUsage?: string;
+  onboardingCompleted?: boolean;
+  theme_id?: string;
+}
+
+export interface RoutineLog {
+  id: number;
+  userId: number;
+  type: "morning" | "night";
+  created_at: string;
+}
+
+export interface SkinLog {
+  id: number;
+  userId: number;
+  acne: number;
+  oiliness: number;
+  dryness: number;
+  irritation: number;
+  created_at: string;
 }
 
 export interface DashboardData {
   savedRoutines: any[];
   savedAnalyses: any[];
   savedComparisons: any[];
-  lastCheckIn: any;
+  lastCheckIn: SkinLog | null;
   routineScore: number;
   scansCount: number;
   streak: number;
+  weeklyCompletionRate: number;
+  lastRoutine: RoutineLog | null;
+  skinTrends: SkinLog[];
+  healthScore: number;
+  healthScoreTrend: number;
 }

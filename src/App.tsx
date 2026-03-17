@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { toPng } from "html-to-image";
-import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Eye, Trash, Share, Download } from "lucide-react";
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  Legend,
+  AreaChart,
+  Area
+} from 'recharts';
+import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard } from "lucide-react";
 import { api } from "./services/api";
 import { geminiService } from "./services/geminiService";
 import { validateSkincareInput } from "./utils/validation";
-import { RoutineResponse, AnalysisResponse, User, DashboardData, RoutineProduct, RoutineAnalysis, ComparisonResponse } from "./types.ts";
+import { RoutineResponse, AnalysisResponse, User, DashboardData, RoutineProduct, RoutineAnalysis, ComparisonResponse, RoutineLog, SkinLog } from "./types.ts";
 
 // --- Components ---
 
@@ -16,7 +28,10 @@ const Navbar = ({ activeTab, setActiveTab, user, onLogout, darkMode, toggleDarkM
         <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-sm shadow-accent/20">
           <Sparkles className="text-white w-5 h-5" />
         </div>
-        <span className="font-bold text-theme-secondary tracking-tight text-lg hidden sm:block">GlowGuide AI</span>
+        <div className="flex flex-col">
+          <span className="font-bold text-theme-secondary tracking-tight text-lg leading-none">GlowGuide</span>
+          <span className="text-[10px] font-medium text-theme-secondary opacity-50 tracking-tight hidden sm:block">Smarter skincare routines</span>
+        </div>
       </div>
       
       <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto no-scrollbar py-1">
@@ -102,7 +117,10 @@ const RoutineShareCard = React.forwardRef<HTMLDivElement, {
           <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
             <Sparkles className="text-white w-5 h-5" />
           </div>
-          <span className="font-bold text-theme-secondary tracking-tight">GlowGuide AI</span>
+          <div className="flex flex-col">
+            <span className="font-bold text-theme-secondary tracking-tight leading-none">GlowGuide</span>
+            <span className="text-[8px] font-medium text-theme-secondary opacity-50 tracking-tight">Smarter skincare routines</span>
+          </div>
         </div>
         <div className="text-right">
           <div className="text-[10px] font-black opacity-30 uppercase tracking-widest">Routine Score</div>
@@ -162,7 +180,7 @@ const RoutineShareCard = React.forwardRef<HTMLDivElement, {
       </div>
 
       <div className="pt-4 border-t border-theme-secondary/5 text-center">
-        <p className="text-[10px] font-bold text-theme-secondary opacity-20 uppercase tracking-[0.3em]">GlowGuide AI • Skincare Intelligence</p>
+        <p className="text-[10px] font-bold text-theme-secondary opacity-20 uppercase tracking-[0.3em]">GlowGuide • Skincare Intelligence</p>
       </div>
     </div>
   );
@@ -311,6 +329,204 @@ const AuthGateModal: React.FC<{
           <p className="text-center text-[10px] text-theme-secondary opacity-40">
             By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+const OnboardingModal: React.FC<{ 
+  isOpen: boolean; 
+  user: User; 
+  onComplete: (profile: Partial<User>) => void;
+}> = ({ isOpen, user, onComplete }) => {
+  const [step, setStep] = useState(-1);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [profile, setProfile] = useState<Partial<User>>({
+    skinType: user.skinType || "",
+    concerns: user.concerns || [],
+    breakoutFrequency: user.breakoutFrequency || "",
+    sensitivity: user.sensitivity || "",
+    routineSize: user.routineSize || "",
+    avoidIngredients: user.avoidIngredients || [],
+    sunscreenUsage: user.sunscreenUsage || "",
+  });
+
+  const questions = [
+    {
+      id: "skinType",
+      title: "Skin Type",
+      type: "single",
+      options: ["Oily", "Dry", "Combination", "Normal", "Sensitive", "Not sure"],
+    },
+    {
+      id: "concerns",
+      title: "Primary Skin Concerns",
+      type: "multi",
+      options: ["Acne / Breakouts", "Aging / Fine Lines", "Dark Spots / Hyperpigmentation", "Dryness", "Redness / Sensitivity", "Texture / Large Pores"],
+    },
+    {
+      id: "breakoutFrequency",
+      title: "Breakout Frequency",
+      type: "single",
+      options: ["Rarely", "Occasionally", "Monthly", "Weekly", "Frequently"],
+    },
+    {
+      id: "sensitivity",
+      title: "Skin Sensitivity",
+      type: "single",
+      options: ["Very sensitive", "Somewhat sensitive", "Not very sensitive", "Unsure"],
+    },
+    {
+      id: "routineSize",
+      title: "Current Routine Size",
+      type: "single",
+      options: ["1–2 products", "3–4 products", "5–6 products", "7+ products"],
+    },
+    {
+      id: "avoidIngredients",
+      title: "Ingredients to Avoid",
+      type: "multi",
+      options: ["Fragrance", "Alcohol", "Essential oils", "Retinoids", "None"],
+    },
+    {
+      id: "sunscreenUsage",
+      title: "Sunscreen Usage",
+      type: "single",
+      options: ["Daily", "Most days", "Occasionally", "Rarely", "Never"],
+    },
+  ];
+
+  const currentQuestion = questions[step];
+
+  const handleSelect = (option: string) => {
+    if (currentQuestion.type === "single") {
+      const updated = { ...profile, [currentQuestion.id]: option };
+      setProfile(updated);
+      if (step < questions.length - 1) {
+        setStep(step + 1);
+      } else {
+        setShowConfirmation(true);
+      }
+    } else {
+      const current = (profile[currentQuestion.id as keyof User] as string[]) || [];
+      const updated = current.includes(option)
+        ? current.filter(o => o !== option)
+        : [...current, option];
+      setProfile({ ...profile, [currentQuestion.id]: updated });
+    }
+  };
+
+  const handleFinish = () => {
+    onComplete({ ...profile, onboardingCompleted: true });
+  };
+
+  const progress = step === -1 ? 0 : ((step + 1) / questions.length) * 100;
+
+  if (showConfirmation) {
+    return (
+      <Modal isOpen={isOpen} onClose={() => {}} title="Profile Ready">
+        <div className="text-center space-y-8 py-4">
+          <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-bold text-theme-secondary">Your skin profile is ready</h3>
+            <p className="text-theme-secondary opacity-60">We'll use this to personalize your routine analysis.</p>
+          </div>
+          <button 
+            onClick={handleFinish}
+            className="w-full py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+          >
+            Get Started
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (step === -1) {
+    return (
+      <Modal isOpen={isOpen} onClose={() => {}} title="Quick skin profile">
+        <div className="text-center space-y-8 py-4">
+          <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+            <UserIcon className="w-10 h-10 text-accent" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-bold text-theme-secondary">Quick skin profile</h3>
+            <p className="text-theme-secondary opacity-60">Takes less than 30 seconds</p>
+          </div>
+          <button 
+            onClick={() => setStep(0)}
+            className="w-full py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+          >
+            Start
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={() => {}} title="Skin Profile">
+      <div className="space-y-8">
+        <div className="space-y-4">
+          <div className="h-1.5 w-full bg-theme-secondary/5 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              className="h-full bg-accent"
+            />
+          </div>
+          <div className="flex justify-between items-center text-[10px] font-black opacity-30 uppercase tracking-widest">
+            <span>Step {step + 1} of {questions.length}</span>
+            <button onClick={() => step < questions.length - 1 ? setStep(step + 1) : setShowConfirmation(true)} className="hover:opacity-100 transition-opacity">Skip</button>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <h3 className="text-xl font-bold text-theme-secondary">{currentQuestion.title}</h3>
+          <div className="grid gap-3">
+            {currentQuestion.options.map((option) => {
+              const isSelected = currentQuestion.type === "single" 
+                ? profile[currentQuestion.id as keyof User] === option
+                : ((profile[currentQuestion.id as keyof User] as string[]) || []).includes(option);
+              
+              return (
+                <button
+                  key={option}
+                  onClick={() => handleSelect(option)}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
+                    isSelected 
+                      ? "border-accent bg-accent/5 text-accent" 
+                      : "border-theme-secondary/10 hover:border-theme-secondary/30 text-theme-secondary"
+                  }`}
+                >
+                  <span className="font-medium">{option}</span>
+                  {isSelected && <CheckCircle2 className="w-5 h-5" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-4">
+          {step > 0 && (
+            <button 
+              onClick={() => setStep(step - 1)}
+              className="flex-1 py-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all"
+            >
+              Back
+            </button>
+          )}
+          {currentQuestion.type === "multi" && (
+            <button 
+              onClick={() => step < questions.length - 1 ? setStep(step + 1) : setShowConfirmation(true)}
+              className="flex-[2] py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+            >
+              {step === questions.length - 1 ? "Finish" : "Next"}
+            </button>
+          )}
         </div>
       </div>
     </Modal>
@@ -544,6 +760,17 @@ const RoutineBuilder: React.FC<{
   const handleShare = async () => {
     if (!shareCardRef.current) return;
     setIsSharing(true);
+
+    // Workaround for html-to-image btoa issue with non-Latin1 characters
+    const originalBtoa = window.btoa;
+    window.btoa = (str) => {
+      try {
+        return originalBtoa(str);
+      } catch (err) {
+        return originalBtoa(unescape(encodeURIComponent(str)));
+      }
+    };
+
     try {
       const dataUrl = await toPng(shareCardRef.current, { cacheBust: true });
       const link = document.createElement('a');
@@ -554,6 +781,7 @@ const RoutineBuilder: React.FC<{
       console.error('Failed to share card:', err);
       alert('Failed to generate share card. Please try again.');
     } finally {
+      window.btoa = originalBtoa;
       setIsSharing(false);
     }
   };
@@ -624,7 +852,7 @@ const RoutineBuilder: React.FC<{
 
   const RoutineSection = ({ time, title }: { time: "AM" | "PM", title: string }) => (
     <div className="space-y-4">
-      <h3 className="text-xl font-bold text-theme-secondary flex items-center gap-2">
+      <h3 className="text-xl font-bold text-accent flex items-center gap-2">
         {time === "AM" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         {title}
       </h3>
@@ -658,7 +886,7 @@ const RoutineBuilder: React.FC<{
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-20 px-6">
       <div className="flex justify-between items-start mb-12">
         <div>
-          <h2 className="text-3xl font-bold text-theme-secondary mb-2">Routine Builder</h2>
+          <h2 className="text-3xl font-bold text-accent mb-2">Routine Builder</h2>
           <p className="text-theme-secondary opacity-60">Organize your products and detect potential ingredient conflicts.</p>
         </div>
         <div className="flex gap-3">
@@ -1002,7 +1230,7 @@ const ProductComparator: React.FC<{ user: User | null }> = ({ user }) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto py-20 px-6">
       <div className="mb-12">
-        <h2 className="text-4xl font-bold text-theme-secondary mb-4 tracking-tight">Product Comparison</h2>
+        <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Product Comparison</h2>
         <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Compare two products side-by-side to find the best fit for your skin.</p>
       </div>
 
@@ -1303,6 +1531,17 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
   const handleShare = async () => {
     if (!shareCardRef.current) return;
     setIsSharing(true);
+
+    // Workaround for html-to-image btoa issue with non-Latin1 characters
+    const originalBtoa = window.btoa;
+    window.btoa = (str) => {
+      try {
+        return originalBtoa(str);
+      } catch (err) {
+        return originalBtoa(unescape(encodeURIComponent(str)));
+      }
+    };
+
     try {
       const dataUrl = await toPng(shareCardRef.current, { cacheBust: true });
       const link = document.createElement('a');
@@ -1313,6 +1552,7 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
       console.error('Failed to share card:', err);
       alert('Failed to generate share card. Please try again.');
     } finally {
+      window.btoa = originalBtoa;
       setIsSharing(false);
     }
   };
@@ -1504,7 +1744,7 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-20 px-6">
       <div className="mb-12">
-        <h2 className="text-4xl font-bold text-theme-secondary mb-4 tracking-tight">Routine Generator</h2>
+        <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Routine Generator</h2>
         <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">
           Answer a few questions and our AI will generate a skincare routine tailored to your skin type, concerns, and current products.
         </p>
@@ -1924,7 +2164,7 @@ const IngredientAnalyzer: React.FC<{
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-20 px-6">
       <div className="mb-12 flex justify-between items-start">
         <div>
-          <h2 className="text-4xl font-bold text-theme-secondary mb-4 tracking-tight">Ingredient Analyzer</h2>
+          <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Ingredient Analyzer</h2>
           <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Paste an ingredient list to understand skin compatibility and routine fit.</p>
         </div>
         {!user && usageCount !== null && (
@@ -1994,25 +2234,31 @@ const IngredientAnalyzer: React.FC<{
   );
 };
 
-const ThemeSettings: React.FC<{ user: User, darkMode: boolean, isThemeActive: boolean, onUpdateTheme: (p: string, s: string) => void }> = ({ user, darkMode, isThemeActive, onUpdateTheme }) => {
-  const defaultPrimary = darkMode ? "#000000" : "#FFFFFF";
-  const defaultSecondary = darkMode ? "#FFFFFF" : "#000000";
-  const [primary, setPrimary] = useState(user.theme_primary_color || defaultPrimary);
-  const [secondary, setSecondary] = useState(user.theme_secondary_color || defaultSecondary);
+const THEMES = [
+  { id: 'glow', name: 'Glow', accent: '#10b981' },
+  { id: 'calm', name: 'Calm', accent: '#6366f1' },
+  { id: 'clinical', name: 'Clinical', accent: '#0ea5e9' },
+  { id: 'midnight', name: 'Midnight', accent: '#64748b' },
+  { id: 'rose', name: 'Rose', accent: '#f43f5e' },
+];
+
+const ThemeSettings: React.FC<{ user: User, darkMode: boolean, onUpdateTheme: (themeId: string, accent: string) => void }> = ({ user, darkMode, onUpdateTheme }) => {
+  const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'glow');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSave = async () => {
-    if (primary === secondary) {
-      setError("Primary and secondary colors must be different.");
-      return;
-    }
+  const handleSave = async (themeId: string) => {
+    if (!user) return;
+    const theme = THEMES.find(t => t.id === themeId);
+    if (!theme) return;
+
+    setSelectedTheme(themeId);
     setError(null);
     setSaving(true);
     try {
-      const res = await api.saveTheme(user.id, primary, secondary);
+      const res = await api.saveTheme(user.id, themeId, theme.accent, theme.accent);
       if (res.success) {
-        onUpdateTheme(primary, secondary);
+        onUpdateTheme(themeId, theme.accent);
       } else {
         setError(res.error || "Failed to save theme");
       }
@@ -2023,66 +2269,43 @@ const ThemeSettings: React.FC<{ user: User, darkMode: boolean, isThemeActive: bo
     }
   };
 
-  // Real-time preview
-  useEffect(() => {
-    document.documentElement.style.setProperty('--theme-primary', primary);
-    document.documentElement.style.setProperty('--theme-secondary', secondary);
-    return () => {
-      // Revert to user's saved theme on unmount if it was active
-      if (isThemeActive && user.theme_primary_color && user.theme_secondary_color) {
-        document.documentElement.style.setProperty('--theme-primary', user.theme_primary_color);
-        document.documentElement.style.setProperty('--theme-secondary', user.theme_secondary_color);
-      } else {
-        document.documentElement.style.removeProperty('--theme-primary');
-        document.documentElement.style.removeProperty('--theme-secondary');
-      }
-    };
-  }, [primary, secondary, user, isThemeActive]);
-
   return (
-    <section className="bg-theme-primary border-2 border-theme-secondary/30 rounded-2xl p-6">
-      <h3 className="font-bold text-theme-secondary mb-4 flex items-center gap-2">
-        <Palette className="w-5 h-5 opacity-70" /> Theme Customization
-      </h3>
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-theme-secondary opacity-50 uppercase tracking-wider">Background Color</label>
-            <div className="flex items-center gap-3">
-              <input 
-                type="color" 
-                value={primary} 
-                onChange={e => setPrimary(e.target.value)}
-                className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"
-              />
-              <span className="text-sm font-mono text-theme-secondary opacity-60">{primary.toUpperCase()}</span>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {THEMES.map((theme) => (
+          <button
+            key={theme.id}
+            onClick={() => handleSave(theme.id)}
+            disabled={saving}
+            className={`p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+              selectedTheme === theme.id 
+                ? "border-accent bg-accent/5" 
+                : "border-theme-secondary/10 bg-theme-secondary/5 hover:border-theme-secondary/30"
+            }`}
+          >
+            <div 
+              className="w-8 h-8 rounded-full shadow-inner" 
+              style={{ backgroundColor: theme.accent }}
+            />
+            <div>
+              <div className="font-bold text-sm text-theme-secondary">{theme.name}</div>
+              <div className="text-[10px] opacity-50 uppercase tracking-wider">Preset</div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-theme-secondary opacity-50 uppercase tracking-wider">Text Color</label>
-            <div className="flex items-center gap-3">
-              <input 
-                type="color" 
-                value={secondary} 
-                onChange={e => setSecondary(e.target.value)}
-                className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"
-              />
-              <span className="text-sm font-mono text-theme-secondary opacity-60">{secondary.toUpperCase()}</span>
-            </div>
-          </div>
-        </div>
-        
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        
-        <button 
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-3 bg-theme-primary border border-theme-secondary text-theme-secondary rounded-xl font-bold hover:bg-theme-secondary/5 transition-all disabled:opacity-50 shadow-sm"
-        >
-          {saving ? "Saving..." : "Save Theme"}
-        </button>
+            {selectedTheme === theme.id && (
+              <div className="ml-auto w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                <Check className="w-3 h-3 text-white" />
+              </div>
+            )}
+          </button>
+        ))}
       </div>
-    </section>
+
+      {error && (
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-bold">
+          {error}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -2272,23 +2495,612 @@ const SavedComparisons: React.FC<{ user: User, onViewDetail: (item: any) => void
   );
 };
 
+const ProfileSettings: React.FC<{ user: User, onUpdate: (profile: Partial<User>) => void }> = ({ user, onUpdate }) => {
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [profile, setProfile] = useState<Partial<User>>({
+    skinType: user?.skinType || "",
+    concerns: user?.concerns || [],
+    breakoutFrequency: user?.breakoutFrequency || "",
+    sensitivity: user?.sensitivity || "",
+    routineSize: user?.routineSize || "",
+    avoidIngredients: user?.avoidIngredients || [],
+    sunscreenUsage: user?.sunscreenUsage || "",
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSuccess(false);
+    try {
+      const res = await api.updateProfile(user.id, profile);
+      if (res.success) {
+        onUpdate(profile);
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-[10px] font-black opacity-30 uppercase tracking-widest">Skin Type</label>
+          <select 
+            value={profile.skinType}
+            onChange={e => setProfile({...profile, skinType: e.target.value})}
+            className="w-full p-3 bg-theme-secondary/5 border border-theme-secondary/10 rounded-xl text-xs font-bold outline-none"
+          >
+            <option value="">Select...</option>
+            {["Oily", "Dry", "Combination", "Normal", "Sensitive", "Not sure"].map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-black opacity-30 uppercase tracking-widest">Sensitivity</label>
+          <select 
+            value={profile.sensitivity}
+            onChange={e => setProfile({...profile, sensitivity: e.target.value})}
+            className="w-full p-3 bg-theme-secondary/5 border border-theme-secondary/10 rounded-xl text-xs font-bold outline-none"
+          >
+            <option value="">Select...</option>
+            {["Very sensitive", "Somewhat sensitive", "Not very sensitive", "Unsure"].map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-[10px] font-black opacity-30 uppercase tracking-widest">Primary Concerns</label>
+        <div className="flex flex-wrap gap-2">
+          {["Acne / Breakouts", "Aging / Fine Lines", "Dark Spots / Hyperpigmentation", "Dryness", "Redness / Sensitivity", "Texture / Large Pores"].map(c => {
+            const isSelected = profile.concerns?.includes(c);
+            return (
+              <button 
+                key={c}
+                onClick={() => {
+                  const current = profile.concerns || [];
+                  const updated = isSelected ? current.filter(o => o !== c) : [...current, c];
+                  setProfile({...profile, concerns: updated});
+                }}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${isSelected ? "bg-accent text-white" : "bg-theme-secondary/5 text-theme-secondary opacity-60 hover:opacity-100"}`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-[10px] font-black opacity-30 uppercase tracking-widest">Breakouts</label>
+          <select 
+            value={profile.breakoutFrequency}
+            onChange={e => setProfile({...profile, breakoutFrequency: e.target.value})}
+            className="w-full p-3 bg-theme-secondary/5 border border-theme-secondary/10 rounded-xl text-xs font-bold outline-none"
+          >
+            <option value="">Select...</option>
+            {["Rarely", "Occasionally", "Monthly", "Weekly", "Frequently"].map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-black opacity-30 uppercase tracking-widest">Sunscreen</label>
+          <select 
+            value={profile.sunscreenUsage}
+            onChange={e => setProfile({...profile, sunscreenUsage: e.target.value})}
+            className="w-full p-3 bg-theme-secondary/5 border border-theme-secondary/10 rounded-xl text-xs font-bold outline-none"
+          >
+            <option value="">Select...</option>
+            {["Daily", "Most days", "Occasionally", "Rarely", "Never"].map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <button 
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50"
+      >
+        {saving ? "Saving..." : "Update Profile"}
+      </button>
+      {success && <div className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-2 text-center">Saved!</div>}
+    </div>
+  );
+};
+
+const RoutineTracker: React.FC<{ 
+  data: DashboardData | null, 
+  userId: number, 
+  onRefresh: () => void 
+}> = ({ data, userId, onRefresh }) => {
+  const [isLogging, setIsLogging] = useState(false);
+
+  const handleLog = async (type: "morning" | "night") => {
+    setIsLogging(true);
+    try {
+      const res = await api.logRoutine(userId, type);
+      if (res.success) {
+        onRefresh();
+      } else if (res.error === "ALREADY_LOGGED_TODAY") {
+        alert(`You've already logged your ${type} routine today!`);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLogging(false);
+    }
+  };
+
+  return (
+    <section className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h3 className="text-xl font-bold text-accent flex items-center gap-2">
+            <Award className="w-5 h-5 text-accent" /> Routine Tracker
+          </h3>
+          <p className="text-xs text-theme-secondary opacity-40 uppercase tracking-widest mt-1">Consistency is key</p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-black text-theme-secondary">{data?.streak || 0}</div>
+          <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Day Streak</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <button 
+          onClick={() => handleLog("morning")}
+          disabled={isLogging}
+          className="flex flex-col items-center justify-center p-6 bg-theme-secondary/5 border border-theme-secondary/10 rounded-2xl hover:bg-theme-secondary/10 transition-all group disabled:opacity-50"
+        >
+          <Sun className="w-6 h-6 text-amber-500 mb-2 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-bold text-theme-secondary">Morning</span>
+          <span className="text-[10px] opacity-40 uppercase tracking-tighter mt-1">Log Completion</span>
+        </button>
+        <button 
+          onClick={() => handleLog("night")}
+          disabled={isLogging}
+          className="flex flex-col items-center justify-center p-6 bg-theme-secondary/5 border border-theme-secondary/10 rounded-2xl hover:bg-theme-secondary/10 transition-all group disabled:opacity-50"
+        >
+          <Moon className="w-6 h-6 text-indigo-400 mb-2 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-bold text-theme-secondary">Night</span>
+          <span className="text-[10px] opacity-40 uppercase tracking-tighter mt-1">Log Completion</span>
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-end">
+          <span className="text-xs font-bold opacity-40 uppercase tracking-widest">Weekly Progress</span>
+          <span className="text-sm font-bold text-theme-secondary">{data?.weeklyCompletionRate || 0}%</span>
+        </div>
+        <div className="h-2 bg-theme-secondary/10 rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${data?.weeklyCompletionRate || 0}%` }}
+            className="h-full bg-accent"
+          />
+        </div>
+        {data?.lastRoutine && (
+          <div className="flex items-center gap-2 text-[10px] text-theme-secondary opacity-50 italic">
+            <Clock className="w-3 h-3" /> 
+            Last logged: {data.lastRoutine.type} at {new Date(data.lastRoutine.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const SkinTrendsChart: React.FC<{ trends: SkinLog[] }> = ({ trends }) => {
+  const chartData = trends.map(log => ({
+    date: new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    Acne: log.acne,
+    Oiliness: log.oiliness,
+    Dryness: log.dryness,
+    Irritation: log.irritation
+  }));
+
+  return (
+    <section className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h3 className="text-xl font-bold text-accent flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-accent" /> Skin Progress
+          </h3>
+          <p className="text-xs text-theme-secondary opacity-40 uppercase tracking-widest mt-1">Last 30 days trend</p>
+        </div>
+      </div>
+
+      <div className="h-[300px] w-full">
+        {trends.length > 1 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorAcne" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorOil" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.1} />
+              <XAxis 
+                dataKey="date" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, opacity: 0.5 }} 
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, opacity: 0.5 }}
+                domain={[0, 10]}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'var(--theme-primary)', 
+                  border: '1px solid rgba(var(--theme-secondary-rgb), 0.1)',
+                  borderRadius: '12px',
+                  fontSize: '12px'
+                }}
+              />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} />
+              <Area type="monotone" dataKey="Acne" stroke="#ef4444" fillOpacity={1} fill="url(#colorAcne)" strokeWidth={2} />
+              <Area type="monotone" dataKey="Oiliness" stroke="#3b82f6" fillOpacity={1} fill="url(#colorOil)" strokeWidth={2} />
+              <Area type="monotone" dataKey="Dryness" stroke="#10b981" fillOpacity={0} strokeWidth={2} />
+              <Area type="monotone" dataKey="Irritation" stroke="#f59e0b" fillOpacity={0} strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-theme-secondary opacity-40 space-y-2">
+            <Activity className="w-12 h-12 opacity-20" />
+            <p className="text-sm font-medium">Log more check-ins to see trends</p>
+            <p className="text-[10px] uppercase tracking-widest">Need at least 2 entries</p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const SkinHealthScore = ({ score, trend }: { score: number, trend: number }) => {
+  const [showInfo, setShowInfo] = useState(false);
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+
+  return (
+    <section className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-[32px] relative overflow-hidden shadow-sm">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-theme-secondary flex items-center gap-2">
+            Skin Health Score
+            <button 
+              onClick={() => setShowInfo(!showInfo)}
+              className="p-1 hover:bg-theme-secondary/5 rounded-full transition-all"
+            >
+              <Info className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+            </button>
+          </h3>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`text-xs font-bold flex items-center gap-0.5 ${trend >= 0 ? 'text-accent' : 'text-rose-500'}`}>
+              {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
+              {trend >= 0 ? '+' : ''}{trend}
+            </span>
+            <span className="text-[10px] font-bold opacity-30 uppercase tracking-wider">Weekly Trend</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center relative py-2">
+        <svg className="w-32 h-32 transform -rotate-90">
+          <circle
+            cx="64"
+            cy="64"
+            r={radius}
+            stroke="currentColor"
+            strokeWidth="6"
+            fill="transparent"
+            className="text-theme-secondary/5"
+          />
+          <motion.circle
+            cx="64"
+            cy="64"
+            r={radius}
+            stroke="currentColor"
+            strokeWidth="6"
+            fill="transparent"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            className="text-accent"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-black text-accent">{score}</span>
+          <span className="text-[8px] font-black opacity-30 uppercase tracking-widest">Health Index</span>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showInfo && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute inset-0 bg-theme-primary/95 backdrop-blur-sm p-6 flex flex-col justify-center z-10"
+          >
+            <button 
+              onClick={() => setShowInfo(false)}
+              className="absolute top-4 right-4 p-2 hover:bg-theme-secondary/5 rounded-full"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <h4 className="font-bold text-theme-secondary mb-3 text-sm">Score Calculation</h4>
+            <ul className="text-[11px] text-theme-secondary opacity-70 space-y-2">
+              <li>• <span className="font-bold">40% Consistency:</span> Based on your routine logging frequency.</li>
+              <li>• <span className="font-bold">60% Condition:</span> Based on acne, irritation, and oil/dry balance logs.</li>
+            </ul>
+            <p className="text-[9px] opacity-40 mt-4 leading-relaxed italic">
+              Weighted towards your most recent check-ins.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+};
+
+const CompactSkinHealthScore = ({ score, trend }: { score: number, trend: number }) => {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+
+  return (
+    <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl flex items-center justify-between shadow-sm">
+      <div>
+        <div className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">Skin Health</div>
+        <div className="text-3xl font-black text-accent">{score}%</div>
+        <div className={`text-[10px] font-bold flex items-center gap-0.5 mt-1 ${trend >= 0 ? 'text-accent' : 'text-rose-500'}`}>
+          {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
+          {trend >= 0 ? '+' : ''}{trend}
+        </div>
+      </div>
+      <div className="relative w-16 h-16 flex items-center justify-center">
+        <svg className="w-16 h-16 transform -rotate-90">
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            stroke="currentColor"
+            strokeWidth="4"
+            fill="transparent"
+            className="text-theme-secondary/5"
+          />
+          <motion.circle
+            cx="32"
+            cy="32"
+            r={radius}
+            stroke="currentColor"
+            strokeWidth="4"
+            fill="transparent"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            className="text-accent"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[10px] font-black text-theme-secondary opacity-40">{score}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false }: { title: string, icon: any, children: React.ReactNode, defaultOpen?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <section className="bg-theme-primary border-2 border-theme-secondary/10 rounded-3xl overflow-hidden shadow-sm">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-6 flex items-center justify-between hover:bg-theme-secondary/5 transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5 text-accent" />
+          <h3 className="font-bold text-theme-secondary">{title}</h3>
+        </div>
+        {isOpen ? <ChevronUp className="w-5 h-5 opacity-40" /> : <ChevronDown className="w-5 h-5 opacity-40" />}
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-6 pb-6 overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+};
+
+const SavedItems = ({ 
+  data, 
+  setDetailItem, 
+  handleDeleteRoutine, 
+  handleDeleteAnalysis, 
+  handleDeleteComparison,
+  user
+}: {
+  data: DashboardData | null,
+  setDetailItem: (item: any) => void,
+  handleDeleteRoutine: (id: number) => void,
+  handleDeleteAnalysis: (id: number) => void,
+  handleDeleteComparison: (id: number) => void,
+  user: User
+}) => {
+  return (
+    <div className="space-y-8">
+      <CollapsibleSection title="Saved Routines" icon={Bookmark}>
+        <div className="pt-4">
+          {data?.savedRoutines && data.savedRoutines.length > 0 ? (
+            <div className="space-y-4">
+              {data.savedRoutines.map((r, idx) => (
+                <div key={idx} className="p-4 bg-theme-primary border-2 border-theme-secondary/10 rounded-2xl group hover:border-theme-secondary/30 transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-bold text-theme-secondary">Routine from {new Date(r.createdAt).toLocaleDateString()}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button 
+                          onClick={() => setDetailItem({ item: r, type: 'routine' })}
+                          className="p-1.5 hover:bg-theme-secondary/5 rounded-lg text-theme-secondary opacity-60 hover:opacity-100 transition-all"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteRoutine(r.id)}
+                          className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-500 opacity-60 hover:opacity-100 transition-all"
+                        >
+                          <Trash className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">AI Generated</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-theme-secondary opacity-60 line-clamp-2">{r.morningRoutine}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-theme-primary border-2 border-theme-secondary/30 rounded-2xl p-8 text-center text-theme-secondary opacity-40">
+              No saved routines yet.
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Saved Analyses" icon={FlaskConical}>
+        <div className="pt-4">
+          {data?.savedAnalyses && data.savedAnalyses.length > 0 ? (
+            <div className="space-y-4">
+              {data.savedAnalyses.map((a, idx) => (
+                <div key={idx} className="p-4 bg-theme-primary border-2 border-theme-secondary/10 rounded-2xl flex justify-between items-center group hover:border-theme-secondary/30 transition-all">
+                  <div>
+                    <div className="font-bold text-theme-secondary">{a.productName}</div>
+                    <div className="text-xs opacity-50">{new Date(a.createdAt).toLocaleDateString()}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button 
+                        onClick={() => setDetailItem({ item: a, type: 'analysis' })}
+                        className="p-1.5 hover:bg-theme-secondary/5 rounded-lg text-theme-secondary opacity-60 hover:opacity-100 transition-all"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteAnalysis(a.id)}
+                        className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-500 opacity-60 hover:opacity-100 transition-all"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="text-xs font-bold text-theme-secondary opacity-70 bg-theme-secondary/5 px-3 py-1 rounded-full">
+                      {a.compatibilityScore ? `${a.compatibilityScore}/100` : a.suitableFor.split(',')[0]}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-theme-primary border-2 border-theme-secondary/30 rounded-2xl p-8 text-center text-theme-secondary opacity-40">
+              No saved analyses yet.
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Saved Comparisons" icon={GitCompare}>
+        <div className="pt-4">
+          <SavedComparisons 
+            user={user} 
+            onViewDetail={(item) => setDetailItem({ item, type: 'comparison' })}
+            onDelete={handleDeleteComparison}
+          />
+        </div>
+      </CollapsibleSection>
+    </div>
+  );
+};
+
 const Dashboard: React.FC<{ 
   user: User | null, 
   darkMode: boolean, 
-  isThemeActive: boolean, 
   onLogin: (u: User) => void, 
-  onUpdateTheme: (p: string, s: string) => void,
+  onUpdateTheme: (themeId: string, accent: string) => void, 
+  onUpdateProfile: (p: Partial<User>) => void,
   setActiveTab: (t: string) => void
-}> = ({ user, darkMode, isThemeActive, onLogin, onUpdateTheme, setActiveTab }) => {
+}> = ({ user, darkMode, onLogin, onUpdateTheme, onUpdateProfile, setActiveTab }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [email, setEmail] = useState("");
   const [detailItem, setDetailItem] = useState<{ item: any, type: 'routine' | 'analysis' | 'comparison' } | null>(null);
+  const [checkInData, setCheckInData] = useState({
+    acne: 5,
+    oiliness: 5,
+    dryness: 5,
+    irritation: 5
+  });
+  const [isSavingCheckIn, setIsSavingCheckIn] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [tempName, setTempName] = useState(user?.name || "");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
 
-  useEffect(() => {
+  const refreshData = () => {
     if (user) {
       api.getDashboardData(user.id).then(setData);
     }
+  };
+
+  useEffect(() => {
+    refreshData();
   }, [user]);
+
+  useEffect(() => {
+    if (data?.lastCheckIn) {
+      setCheckInData({
+        acne: data.lastCheckIn.acne,
+        oiliness: data.lastCheckIn.oiliness,
+        dryness: data.lastCheckIn.dryness,
+        irritation: data.lastCheckIn.irritation
+      });
+    }
+  }, [data?.lastCheckIn]);
+
+  const handleSkinLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setIsSavingCheckIn(true);
+    try {
+      await api.logSkin(user.id, checkInData);
+      refreshData();
+      alert("Daily check-in saved!");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingCheckIn(false);
+    }
+  };
 
   const handleDeleteRoutine = async (id: number) => {
     if (!confirm("Delete this routine?")) return;
@@ -2305,6 +3117,19 @@ const Dashboard: React.FC<{
   const handleDeleteComparison = async (id: number) => {
     await api.deleteComparison(id);
     setData(prev => prev ? { ...prev, savedComparisons: prev.savedComparisons.filter(c => c.id !== id) } : null);
+  };
+
+  const handleUpdateName = async () => {
+    if (!user) return;
+    setIsUpdatingName(true);
+    try {
+      await api.updateProfile(user.id, { name: tempName });
+      onUpdateProfile({ name: tempName });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsUpdatingName(false);
+    }
   };
 
   if (!user) {
@@ -2362,40 +3187,165 @@ const Dashboard: React.FC<{
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto py-20 px-6">
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSettingsOpen(false)}
+              className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 bottom-0 z-[60] bg-theme-primary w-full max-w-md shadow-2xl overflow-y-auto"
+            >
+              <div className="p-6 pb-32">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-2xl font-bold text-accent">Settings</h2>
+                  <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-theme-secondary/10 rounded-xl">
+                    <X className="w-6 h-6 text-theme-secondary" />
+                  </button>
+                </div>
+
+              <div className="space-y-8">
+                {/* Name Change */}
+                <section className="bg-theme-secondary/5 p-6 rounded-3xl border border-theme-secondary/10">
+                  <h3 className="text-sm font-bold opacity-40 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <UserIcon className="w-4 h-4" /> Profile
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Email Address</label>
+                      <div className="p-3 bg-theme-primary/50 border-2 border-theme-secondary/5 text-theme-secondary rounded-xl opacity-60 text-sm">
+                        {user.email}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Display Name</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={tempName}
+                          onChange={e => setTempName(e.target.value)}
+                          className="flex-1 p-3 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-xl outline-none focus:border-accent/50 transition-all"
+                          placeholder="Your name"
+                        />
+                        <button 
+                          onClick={handleUpdateName}
+                          disabled={isUpdatingName || tempName === user.name}
+                          className="px-4 bg-accent text-white rounded-xl font-bold disabled:opacity-50 transition-all text-sm"
+                        >
+                          {isUpdatingName ? "..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Skin Profile */}
+                <CollapsibleSection title="Skin Profile" icon={ShieldCheck}>
+                  <div className="pt-4">
+                    <ProfileSettings user={user} onUpdate={onUpdateProfile} />
+                  </div>
+                </CollapsibleSection>
+
+                {/* Appearance */}
+                <CollapsibleSection title="Appearance" icon={Palette}>
+                  <div className="pt-4">
+                    <ThemeSettings user={user} darkMode={darkMode} onUpdateTheme={onUpdateTheme} />
+                  </div>
+                </CollapsibleSection>
+
+                {/* Saved Items */}
+                <CollapsibleSection title="Saved Items" icon={Bookmark}>
+                  <div className="pt-4">
+                    <SavedItems 
+                      data={data}
+                      user={user}
+                      setDetailItem={setDetailItem}
+                      handleDeleteRoutine={handleDeleteRoutine}
+                      handleDeleteAnalysis={handleDeleteAnalysis}
+                      handleDeleteComparison={handleDeleteComparison}
+                    />
+                  </div>
+                </CollapsibleSection>
+
+                {/* Membership */}
+                <section className="bg-theme-secondary/5 p-6 rounded-3xl border border-theme-secondary/10">
+                  <h3 className="text-sm font-bold opacity-40 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" /> Membership
+                  </h3>
+                  <div className="flex items-center justify-between p-4 bg-theme-primary rounded-2xl border border-theme-secondary/10">
+                    <div>
+                      <div className="font-bold text-theme-secondary">Pro Plan</div>
+                      <div className="text-xs opacity-50">Active until March 2027</div>
+                    </div>
+                    <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                      Active
+                    </div>
+                  </div>
+                  <button className="w-full mt-4 py-3 bg-theme-secondary/10 text-theme-secondary rounded-xl font-bold text-sm hover:bg-theme-secondary/20 transition-all">
+                    Manage Subscription
+                  </button>
+                </section>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+
       <div className="flex justify-between items-end mb-12">
-        <div>
-          <h2 className="text-3xl font-bold text-theme-secondary mb-2">Welcome back</h2>
-          <p className="text-theme-secondary opacity-60">{user.email}</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-accent mb-2">Welcome back, {user.name || 'User'}</h2>
+          </div>
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2.5 bg-theme-secondary/10 text-theme-secondary rounded-2xl hover:bg-theme-secondary/20 transition-all"
+          >
+            <Settings className="w-6 h-6" />
+          </button>
         </div>
-        <div className="px-4 py-2 bg-theme-secondary/10 text-theme-secondary rounded-full text-sm font-bold">
+        <div className="hidden md:block px-4 py-2 bg-theme-secondary/10 text-theme-secondary rounded-full text-sm font-bold">
           PRO MODE
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-        <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl">
-          <div className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Routine Score</div>
-          <div className="text-3xl font-black text-theme-secondary">{data?.routineScore || 0}<span className="text-sm opacity-30">/100</span></div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
         <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl">
           <div className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Total Scans</div>
-          <div className="text-3xl font-black text-theme-secondary">{data?.scansCount || 0}</div>
+          <div className="text-3xl font-black text-accent">{data?.scansCount || 0}</div>
         </div>
+        <CompactSkinHealthScore score={data?.healthScore || 0} trend={data?.healthScoreTrend || 0} />
         <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl">
           <div className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Check-in Streak</div>
-          <div className="text-3xl font-black text-theme-secondary">{data?.streak || 0}<span className="text-sm opacity-30"> days</span></div>
+          <div className="text-3xl font-black text-accent">{data?.streak || 0}<span className="text-sm opacity-30"> days</span></div>
         </div>
         <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl">
           <div className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Saved Items</div>
-          <div className="text-3xl font-black text-theme-secondary">{(data?.savedRoutines.length || 0) + (data?.savedAnalyses.length || 0) + (data?.savedComparisons.length || 0)}</div>
+          <div className="text-3xl font-black text-accent">{(data?.savedRoutines.length || 0) + (data?.savedAnalyses.length || 0) + (data?.savedComparisons.length || 0)}</div>
         </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">
+          <RoutineTracker data={data} userId={user.id} onRefresh={refreshData} />
+          
+          <CollapsibleSection title="Skin Progress Chart" icon={Activity}>
+            <div className="pt-4">
+              <SkinTrendsChart trends={data?.skinTrends || []} />
+            </div>
+          </CollapsibleSection>
+
           <section className="bg-theme-secondary/5 rounded-[32px] p-8 border border-theme-secondary/10">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-theme-secondary">Your Current Routine</h3>
+              <h3 className="text-xl font-bold text-accent">Your Current Routine</h3>
               <div className="flex items-center gap-2 text-accent font-bold text-sm">
                 <Activity className="w-4 h-4" /> Balanced
               </div>
@@ -2438,7 +3388,7 @@ const Dashboard: React.FC<{
               <div className="flex items-center gap-4">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Health Score</span>
-                  <span className="text-xl font-black text-accent">{data?.routineScore || 0}%</span>
+                  <span className="text-xl font-black text-accent">{data?.healthScore || 0}%</span>
                 </div>
                 <div className="flex flex-col border-l border-theme-secondary/10 pl-4">
                   <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Alerts</span>
@@ -2453,118 +3403,72 @@ const Dashboard: React.FC<{
               </button>
             </div>
           </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-theme-secondary mb-4">Saved Routines</h3>
-            {data?.savedRoutines && data.savedRoutines.length > 0 ? (
-              <div className="space-y-4">
-                {data.savedRoutines.map((r, idx) => (
-                  <div key={idx} className="p-4 bg-theme-primary border-2 border-theme-secondary/10 rounded-2xl group hover:border-theme-secondary/30 transition-all">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-bold text-theme-secondary">Routine from {new Date(r.createdAt).toLocaleDateString()}</div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                          <button 
-                            onClick={() => setDetailItem({ item: r, type: 'routine' })}
-                            className="p-1.5 hover:bg-theme-secondary/5 rounded-lg text-theme-secondary opacity-60 hover:opacity-100 transition-all"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteRoutine(r.id)}
-                            className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-500 opacity-60 hover:opacity-100 transition-all"
-                          >
-                            <Trash className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">AI Generated</div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-theme-secondary opacity-60 line-clamp-2">{r.morningRoutine}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-theme-primary border-2 border-theme-secondary/30 rounded-2xl p-8 text-center text-theme-secondary opacity-40">
-                No saved routines yet.
-              </div>
-            )}
-          </section>
-          <section>
-            <h3 className="text-lg font-bold text-theme-secondary mb-4">Saved Analyses</h3>
-            {data?.savedAnalyses && data.savedAnalyses.length > 0 ? (
-              <div className="space-y-4">
-                {data.savedAnalyses.map((a, idx) => (
-                  <div key={idx} className="p-4 bg-theme-primary border-2 border-theme-secondary/10 rounded-2xl flex justify-between items-center group hover:border-theme-secondary/30 transition-all">
-                    <div>
-                      <div className="font-bold text-theme-secondary">{a.productName}</div>
-                      <div className="text-xs opacity-50">{new Date(a.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <button 
-                          onClick={() => setDetailItem({ item: a, type: 'analysis' })}
-                          className="p-1.5 hover:bg-theme-secondary/5 rounded-lg text-theme-secondary opacity-60 hover:opacity-100 transition-all"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteAnalysis(a.id)}
-                          className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-500 opacity-60 hover:opacity-100 transition-all"
-                        >
-                          <Trash className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <div className="text-xs font-bold text-theme-secondary opacity-70 bg-theme-secondary/5 px-3 py-1 rounded-full">
-                        {a.compatibilityScore ? `${a.compatibilityScore}/100` : a.suitableFor.split(',')[0]}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-theme-primary border-2 border-theme-secondary/30 rounded-2xl p-8 text-center text-theme-secondary opacity-40">
-                No saved analyses yet.
-              </div>
-            )}
-          </section>
-          <section>
-            <h3 className="text-lg font-bold text-theme-secondary mb-4 flex items-center gap-2">
-              <GitCompare className="w-5 h-5 opacity-70" /> Saved Comparisons
-            </h3>
-            <SavedComparisons 
-              user={user} 
-              onViewDetail={(item) => setDetailItem({ item, type: 'comparison' })}
-              onDelete={handleDeleteComparison}
-            />
-          </section>
         </div>
 
         <div className="space-y-8">
-          <ThemeSettings user={user} darkMode={darkMode} isThemeActive={isThemeActive} onUpdateTheme={onUpdateTheme} />
-          
-          <section className="bg-theme-primary border-2 border-theme-secondary/30 p-6 rounded-2xl text-theme-secondary shadow-sm">
-            <h3 className="font-bold mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 opacity-70" /> Daily Check-in
-            </h3>
-            <form className="space-y-4" onSubmit={e => { e.preventDefault(); alert("Check-in saved!"); }}>
+          <CollapsibleSection title="Daily Check-in" icon={CheckCircle2} defaultOpen={true}>
+            <form className="space-y-4" onSubmit={handleSkinLog}>
               <div>
-                <label className="text-xs uppercase tracking-wider font-bold opacity-50 block mb-2">Dryness</label>
-                <input type="range" className="w-full accent-theme-secondary" />
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Acne</label>
+                  <span className="text-xs font-bold text-accent">{checkInData.acne}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" max="10" 
+                  value={checkInData.acne}
+                  onChange={e => setCheckInData({...checkInData, acne: parseInt(e.target.value)})}
+                  className="w-full accent-theme-secondary" 
+                />
               </div>
               <div>
-                <label className="text-xs uppercase tracking-wider font-bold opacity-50 block mb-2">Irritation</label>
-                <input type="range" className="w-full accent-theme-secondary" />
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Oiliness</label>
+                  <span className="text-xs font-bold text-accent">{checkInData.oiliness}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" max="10" 
+                  value={checkInData.oiliness}
+                  onChange={e => setCheckInData({...checkInData, oiliness: parseInt(e.target.value)})}
+                  className="w-full accent-theme-secondary" 
+                />
               </div>
-              <div className="flex items-center gap-3">
-                <input type="checkbox" id="sunscreen" className="w-4 h-4 accent-theme-secondary" />
-                <label htmlFor="sunscreen" className="text-sm opacity-80">Applied Sunscreen</label>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Dryness</label>
+                  <span className="text-xs font-bold text-accent">{checkInData.dryness}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" max="10" 
+                  value={checkInData.dryness}
+                  onChange={e => setCheckInData({...checkInData, dryness: parseInt(e.target.value)})}
+                  className="w-full accent-theme-secondary" 
+                />
               </div>
-              <button className="w-full py-3 bg-theme-primary border border-theme-secondary/20 rounded-xl font-bold hover:bg-theme-secondary/5 transition-all mt-4 shadow-sm">
-                Save Check-in
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Irritation</label>
+                  <span className="text-xs font-bold text-accent">{checkInData.irritation}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" max="10" 
+                  value={checkInData.irritation}
+                  onChange={e => setCheckInData({...checkInData, irritation: parseInt(e.target.value)})}
+                  className="w-full accent-theme-secondary" 
+                />
+              </div>
+              <button 
+                type="submit"
+                disabled={isSavingCheckIn}
+                className="w-full py-3 bg-theme-primary border border-theme-secondary/20 rounded-xl font-bold hover:bg-theme-secondary/5 transition-all mt-4 shadow-sm disabled:opacity-50"
+              >
+                {isSavingCheckIn ? "Saving..." : "Save Check-in"}
               </button>
             </form>
-          </section>
+          </CollapsibleSection>
         </div>
       </div>
       <AnimatePresence>
@@ -2591,7 +3495,7 @@ export default function App() {
     return "routine";
   });
   const [user, setUser] = useState<User | null>(null);
-  const [isThemeActive, setIsThemeActive] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
   const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
@@ -2627,14 +3531,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (isThemeActive && user?.theme_primary_color && user?.theme_secondary_color) {
-      document.documentElement.style.setProperty('--theme-primary', user.theme_primary_color);
-      document.documentElement.style.setProperty('--theme-secondary', user.theme_secondary_color);
-    } else {
-      document.documentElement.style.removeProperty('--theme-primary');
-      document.documentElement.style.removeProperty('--theme-secondary');
+    const isValidColor = (c: string) => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(c);
+    
+    const themeId = user?.theme_id || 'glow';
+    const theme = THEMES.find(t => t.id === themeId) || THEMES[0];
+    const accent = user?.theme_primary_color || theme.accent;
+
+    try {
+      if (isValidColor(accent)) {
+        document.documentElement.style.setProperty('--accent', accent);
+      }
+    } catch (e) {
+      console.warn("Error applying theme", e);
     }
-  }, [user, isThemeActive]);
+  }, [user]);
 
   useEffect(() => {
     if (darkMode) {
@@ -2659,15 +3569,34 @@ export default function App() {
 
   const handleLogin = (u: User) => {
     setUser(u);
-    setIsThemeActive(false); // Keep default theme on sign in
     localStorage.setItem("glowguide_user", JSON.stringify(u));
+    if (!u.onboardingCompleted) {
+      setIsOnboardingOpen(true);
+    }
   };
 
-  const handleUpdateTheme = (primary: string, secondary: string) => {
+  const handleOnboardingComplete = async (profile: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, theme_primary_color: primary, theme_secondary_color: secondary };
+      const updatedUser = { ...user, ...profile };
       setUser(updatedUser);
-      setIsThemeActive(true); // Activate theme once changed/saved
+      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+      await api.updateProfile(user.id, profile);
+      setIsOnboardingOpen(false);
+    }
+  };
+
+  const handleUpdateProfile = (profile: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...profile };
+      setUser(updatedUser);
+      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+    }
+  };
+
+  const handleUpdateTheme = (themeId: string, accent: string) => {
+    if (user) {
+      const updatedUser = { ...user, theme_id: themeId, theme_primary_color: accent, theme_secondary_color: accent };
+      setUser(updatedUser);
       localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
     }
   };
@@ -2688,12 +3617,8 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
-    setIsThemeActive(false);
     localStorage.removeItem("glowguide_user");
     setActiveTab("routine");
-    // Explicitly reset theme properties to defaults
-    document.documentElement.style.removeProperty('--theme-primary');
-    document.documentElement.style.removeProperty('--theme-secondary');
   };
 
   return (
@@ -2730,6 +3655,14 @@ export default function App() {
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
       />
+
+      {user && (
+        <OnboardingModal 
+          isOpen={isOnboardingOpen} 
+          user={user} 
+          onComplete={handleOnboardingComplete} 
+        />
+      )}
       
       <main className="pt-16 pb-20">
         <AnimatePresence mode="wait">
@@ -2765,9 +3698,9 @@ export default function App() {
               key="dashboard" 
               user={user} 
               darkMode={darkMode} 
-              isThemeActive={isThemeActive} 
               onLogin={handleLogin} 
               onUpdateTheme={handleUpdateTheme} 
+              onUpdateProfile={handleUpdateProfile}
               setActiveTab={setActiveTab}
             />
           )}
@@ -2784,14 +3717,14 @@ export default function App() {
             <div className="w-6 h-6 bg-theme-secondary/10 rounded flex items-center justify-center">
               <Sparkles className="text-theme-secondary opacity-50 w-4 h-4" />
             </div>
-            <span className="font-semibold text-theme-secondary opacity-40">GlowGuide AI</span>
+            <span className="font-semibold text-theme-secondary opacity-40">GlowGuide</span>
           </div>
           <div className="flex gap-8 text-sm text-theme-secondary opacity-50 font-medium">
             <button onClick={() => setIsPrivacyOpen(true)} className="hover:opacity-100 transition-colors cursor-pointer">Privacy Policy</button>
             <button onClick={() => setIsTermsOpen(true)} className="hover:opacity-100 transition-colors cursor-pointer">Terms of Service</button>
             <a href="mailto:support@glowguide.ai" className="hover:opacity-100 transition-colors">Contact</a>
           </div>
-          <p className="text-sm text-theme-secondary opacity-40">© 2026 GlowGuide AI. All rights reserved.</p>
+          <p className="text-sm text-theme-secondary opacity-40">© 2026 GlowGuide. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -22,6 +22,24 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+
+  async logRoutine(userId: number, type: "morning" | "night"): Promise<{ success: boolean; error?: string }> {
+    const res = await fetch("/api/routine/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, type }),
+    });
+    return res.json();
+  },
+
+  async logSkin(userId: number, data: { acne: number; oiliness: number; dryness: number; irritation: number }): Promise<{ success: boolean; error?: string }> {
+    const res = await fetch("/api/skin/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, ...data }),
+    });
+    return res.json();
+  },
   
   async checkUsage(clientId: string | null, userId: number | null): Promise<{ allowed: boolean; error?: string; count?: number }> {
     const res = await fetch("/api/usage/check", {
@@ -40,11 +58,11 @@ export const api = {
     });
   },
 
-  async saveTheme(userId: number, primaryColor: string, secondaryColor: string): Promise<{ success: boolean; error?: string }> {
+  async saveTheme(userId: number, themeId: string, primaryColor?: string, secondaryColor?: string): Promise<{ success: boolean; error?: string }> {
     const res = await fetch("/api/user/theme", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, primaryColor, secondaryColor }),
+      body: JSON.stringify({ userId, themeId, primaryColor, secondaryColor }),
     });
     return res.json();
   },
@@ -87,6 +105,15 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, comparison }),
+    });
+    return res.json();
+  },
+
+  async updateProfile(userId: number, profile: Partial<User>): Promise<{ success: boolean; error?: string }> {
+    const res = await fetch("/api/user/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, ...profile }),
     });
     return res.json();
   },
