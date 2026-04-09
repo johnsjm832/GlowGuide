@@ -13,88 +13,281 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard } from "lucide-react";
+import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard, Search, MessageSquare } from "lucide-react";
 import { api } from "./services/api";
 import { geminiService } from "./services/geminiService";
-import { validateSkincareInput } from "./utils/validation";
+import { NotificationCenter } from "./components/NotificationCenter";
+import { validateSkincareInput, validateDisplayName } from "./utils/validation";
 import { RoutineResponse, AnalysisResponse, User, DashboardData, RoutineProduct, RoutineAnalysis, ComparisonResponse, RoutineLog, SkinLog } from "./types.ts";
+
+const EARLY_ACCESS_MODE = true;
 
 // --- Components ---
 
-const Navbar = ({ activeTab, setActiveTab, user, onLogout, darkMode, toggleDarkMode }: { activeTab: string, setActiveTab: (t: string) => void, user: User | null, onLogout: () => void, darkMode: boolean, toggleDarkMode: () => void }) => (
-  <nav className="fixed top-0 left-0 right-0 bg-theme-primary/80 backdrop-blur-md border-b border-theme-secondary/10 z-50">
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => setActiveTab(user ? "dashboard" : "routine")}>
-        <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-sm shadow-accent/20">
-          <Sparkles className="text-white w-5 h-5" />
-        </div>
-        <div className="flex flex-col">
-          <span className="font-bold text-theme-secondary tracking-tight text-lg leading-none">GlowGuide</span>
-          <span className="text-[10px] font-medium text-theme-secondary opacity-50 tracking-tight hidden sm:block">Smarter skincare routines</span>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto no-scrollbar py-1">
-        <button 
-          onClick={() => setActiveTab("routine")}
-          className={`text-sm font-semibold transition-all relative py-1 shrink-0 ${activeTab === "routine" ? "text-accent" : "text-theme-secondary/60 hover:text-theme-secondary"}`}
-        >
-          Routine Generator
-          {activeTab === "routine" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab("analyze")}
-          className={`text-sm font-semibold transition-all relative py-1 shrink-0 ${activeTab === "analyze" ? "text-accent" : "text-theme-secondary/60 hover:text-theme-secondary"}`}
-        >
-          Analyze
-          {activeTab === "analyze" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab("compare")}
-          className={`text-sm font-semibold transition-all relative py-1 shrink-0 ${activeTab === "compare" ? "text-accent" : "text-theme-secondary/60 hover:text-theme-secondary"}`}
-        >
-          Compare
-          {activeTab === "compare" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab("routine-builder")}
-          className={`text-sm font-semibold transition-all relative py-1 shrink-0 ${activeTab === "routine-builder" ? "text-accent" : "text-theme-secondary/60 hover:text-theme-secondary"}`}
-        >
-          Routine Builder
-          {activeTab === "routine-builder" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab("dashboard")}
-          className={`text-sm font-semibold transition-all relative py-1 shrink-0 ${activeTab === "dashboard" ? "text-accent" : "text-theme-secondary/60 hover:text-theme-secondary"}`}
-        >
-          Dashboard
-          {activeTab === "dashboard" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
-        </button>
-        
-        <div className="h-4 w-px bg-theme-secondary/10 mx-1 shrink-0" />
-
-        <button 
-          onClick={toggleDarkMode}
-          className="p-2 text-theme-secondary/60 hover:text-theme-secondary transition-colors shrink-0"
-          aria-label="Toggle theme"
-        >
-          {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
-
-        {user ? (
-          <button onClick={onLogout} className="flex items-center gap-2 text-sm font-bold text-theme-secondary/60 hover:text-theme-secondary shrink-0">
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
-        ) : (
-          <button onClick={() => setActiveTab("dashboard")} className="flex items-center gap-2 text-sm font-bold text-theme-secondary/60 hover:text-theme-secondary shrink-0">
-            <LogIn className="w-4 h-4" />
-            <span>Sign In</span>
-          </button>
-        )}
+const EarlyAccessBanner = () => {
+  if (!EARLY_ACCESS_MODE) return null;
+  return (
+    <div className="bg-accent text-white py-1 px-4 text-center text-[9px] font-black uppercase tracking-[0.15em] relative">
+      <div className="max-w-6xl mx-auto flex items-center justify-center gap-2">
+        <Sparkles className="w-2.5 h-2.5 animate-pulse" />
+        <span>Early Access: All premium features unlocked during testing</span>
+        <Sparkles className="w-2.5 h-2.5 animate-pulse" />
       </div>
     </div>
-  </nav>
+  );
+};
+
+const FeedbackModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: () => void, user: User | null }) => {
+  const [feedback, setFeedback] = useState("");
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedback.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await api.sendFeedback(user?.id || null, email || user?.email || null, feedback);
+      setIsSubmitting(false);
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        setFeedback("");
+        onClose();
+      }, 2000);
+    } catch (error) {
+      console.error("Feedback failed:", error);
+      setIsSubmitting(false);
+      alert("Failed to send feedback. Please try again.");
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Send Feedback">
+      {submitted ? (
+        <div className="py-12 text-center">
+          <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+          </div>
+          <h3 className="text-xl font-bold text-theme-secondary mb-2">Thank you!</h3>
+          <p className="text-theme-secondary opacity-60">Your feedback helps us make GlowGuide better for everyone.</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="w-6 h-6 text-accent" />
+            </div>
+            <p className="text-theme-secondary opacity-70 leading-relaxed">
+              Spotted a bug? Have a feature request? Or just want to say hi? We'd love to hear from you.
+            </p>
+          </div>
+
+          {!user && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Your Email (Optional)</label>
+              <input 
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl outline-none focus:border-accent/50 transition-all"
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Your Feedback</label>
+            <textarea 
+              value={feedback}
+              onChange={e => setFeedback(e.target.value)}
+              placeholder="Tell us what's on your mind..."
+              className="w-full h-32 p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl outline-none focus:border-accent/50 transition-all resize-none"
+              required
+            />
+          </div>
+
+          <button 
+            type="submit"
+            disabled={isSubmitting || !feedback.trim()}
+            className="w-full py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? "Sending..." : "Send Feedback"}
+          </button>
+        </form>
+      )}
+    </Modal>
+  );
+};
+
+const ConversionPrompt = ({ onUpgrade }: { onUpgrade: () => void }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="mt-12 p-8 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent border-2 border-accent/20 rounded-[32px] text-center relative overflow-hidden group"
+  >
+    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+      <TrendingUp className="w-24 h-24 text-accent -rotate-12" />
+    </div>
+    <div className="relative z-10">
+      <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Star className="w-6 h-6 text-accent" />
+      </div>
+      <h4 className="text-xl font-bold text-theme-secondary mb-3">Track how your skin responds over time.</h4>
+      <p className="text-theme-secondary opacity-70 mb-6 max-w-md mx-auto leading-relaxed">
+        {EARLY_ACCESS_MODE 
+          ? "Premium features are currently unlocked during early access! Explore skin progress tracking and deeper insights today."
+          : "Start your 7-day free trial to unlock skin progress tracking and deeper insights."}
+      </p>
+      <button 
+        onClick={onUpgrade}
+        className="px-8 py-3 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20 flex items-center gap-2 mx-auto"
+      >
+        {EARLY_ACCESS_MODE ? "Explore Premium Features" : "Start 7-Day Free Trial"} <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  </motion.div>
+);
+
+const Navbar = ({ 
+  activeTab, 
+  setActiveTab, 
+  user, 
+  onLogout, 
+  darkMode, 
+  toggleDarkMode, 
+  onUpgrade,
+  dashboard,
+  onUpdateUser
+}: { 
+  activeTab: string, 
+  setActiveTab: (t: string) => void, 
+  user: User | null, 
+  onLogout: () => void, 
+  darkMode: boolean, 
+  toggleDarkMode: () => void, 
+  onUpgrade: () => void,
+  dashboard: DashboardData | null,
+  onUpdateUser: (u: User) => void
+}) => (
+  <div className="z-50 w-full">
+    {/* Tier 1: Branding & Actions (Scrolls away) */}
+    <div className="bg-theme-primary border-b border-theme-secondary/5">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => setActiveTab(user ? "dashboard" : "routine")}>
+          <div className="w-7 h-7 bg-accent rounded-lg flex items-center justify-center shadow-sm shadow-accent/20">
+            <Sparkles className="text-white w-4 h-4" />
+          </div>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-theme-secondary tracking-tight text-base leading-none">GlowGuide</span>
+              {user?.tier === 'premium' ? (
+                <span className="bg-accent text-white text-[7px] font-black px-1 py-0.5 rounded-md uppercase tracking-widest">Pro</span>
+              ) : EARLY_ACCESS_MODE ? (
+                <span className="bg-emerald-500 text-white text-[7px] font-black px-1 py-0.5 rounded-md uppercase tracking-widest">Early Access</span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <NotificationCenter 
+            user={user} 
+            dashboard={dashboard} 
+            setActiveTab={setActiveTab} 
+            onUpdateUser={onUpdateUser} 
+          />
+          <button 
+            onClick={toggleDarkMode}
+            className="p-2 text-theme-secondary/60 hover:text-theme-secondary transition-colors"
+            aria-label="Toggle theme"
+          >
+            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          
+          <div className="h-4 w-px bg-theme-secondary/10 mx-1" />
+
+          {user ? (
+            <div className="flex items-center gap-3">
+              {user.tier !== 'premium' && (
+                <button 
+                  onClick={onUpgrade}
+                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-full text-[10px] font-bold hover:bg-accent/20 transition-all"
+                >
+                  <Award className="w-3 h-3" />
+                  {EARLY_ACCESS_MODE ? 'Early Access' : 'Upgrade'}
+                </button>
+              )}
+              <button onClick={onLogout} className="flex items-center gap-2 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary">
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setActiveTab("dashboard")} className="flex items-center gap-2 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary">
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+
+    {/* Tier 2: Feature Navigation (Sticky for maneuvering) */}
+    <nav className="sticky top-0 bg-theme-primary/90 backdrop-blur-md border-b border-theme-secondary/10 z-50 w-full">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-6 sm:gap-8 min-w-max">
+          <button 
+            onClick={() => setActiveTab("routine")}
+            className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "routine" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
+          >
+            Routine Generator
+            {activeTab === "routine" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
+          </button>
+          <button 
+            onClick={() => setActiveTab("analyze")}
+            className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "analyze" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
+          >
+            Analyze
+            {activeTab === "analyze" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
+          </button>
+          <button 
+            onClick={() => setActiveTab("compare")}
+            className={`text-xs font-bold transition-all relative py-1 shrink-0 flex items-center gap-1.5 uppercase tracking-widest ${activeTab === "compare" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
+          >
+            Compare
+            {user?.tier !== 'premium' && (
+              EARLY_ACCESS_MODE 
+                ? <Sparkles className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />
+                : <Award className="w-2.5 h-2.5 text-accent opacity-50" />
+            )}
+            {activeTab === "compare" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
+          </button>
+          <button 
+            onClick={() => setActiveTab("routine-builder")}
+            className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "routine-builder" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
+          >
+            Routine Builder
+            {activeTab === "routine-builder" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
+          </button>
+          <button 
+            onClick={() => setActiveTab("dashboard")}
+            className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "dashboard" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
+          >
+            Dashboard
+            {activeTab === "dashboard" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
+          </button>
+        </div>
+      </div>
+    </nav>
+  </div>
 );
 
 const RoutineShareCard = React.forwardRef<HTMLDivElement, { 
@@ -254,12 +447,22 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
 const AuthGateModal: React.FC<{ 
   isOpen: boolean; 
   onClose: () => void; 
-  onLogin: (email: string) => void;
+  onLogin: (email: string, remember: boolean) => void;
   title: string;
   description: string;
   preview?: { am?: string[]; pm?: string[] };
 }> = ({ isOpen, onClose, onLogin, title, description, preview }) => {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => localStorage.getItem("glowguide_remembered_email") || "");
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem("glowguide_remembered_email"));
+
+  const handleLogin = () => {
+    if (rememberMe) {
+      localStorage.setItem("glowguide_remembered_email", email);
+    } else {
+      localStorage.removeItem("glowguide_remembered_email");
+    }
+    onLogin(email || "demo@example.com", rememberMe);
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
@@ -269,6 +472,27 @@ const AuthGateModal: React.FC<{
             <ShieldCheck className="w-8 h-8 text-accent" />
           </div>
           <p className="text-theme-secondary opacity-70 leading-relaxed">{description}</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 mb-4 text-left">
+          <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10">
+            <h3 className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">Free Account</h3>
+            <ul className="space-y-1.5 text-xs text-theme-secondary opacity-70">
+              <li className="flex items-center gap-2"><Check className="w-3 h-3 text-emerald-500" /> Save 1 custom routine</li>
+              <li className="flex items-center gap-2"><Check className="w-3 h-3 text-emerald-500" /> 3 ingredient analyses per day</li>
+              <li className="flex items-center gap-2"><Check className="w-3 h-3 text-emerald-500" /> Basic skin health score</li>
+            </ul>
+          </div>
+          <div className="p-4 bg-accent/5 rounded-2xl border border-accent/10">
+            <h3 className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">
+              Premium Features {EARLY_ACCESS_MODE && <span className="text-emerald-500 ml-1">(Unlocked)</span>}
+            </h3>
+            <ul className="space-y-1.5 text-xs text-theme-secondary opacity-70">
+              <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-accent" /> Unlimited routine saves</li>
+              <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-accent" /> Unlimited ingredient analysis</li>
+              <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-accent" /> Advanced progress tracking</li>
+            </ul>
+          </div>
         </div>
 
         {preview && (
@@ -312,15 +536,29 @@ const AuthGateModal: React.FC<{
               onChange={e => setEmail(e.target.value)}
             />
           </div>
+          
+          <label className="flex items-center gap-2 cursor-pointer group w-fit">
+            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-accent border-accent' : 'border-theme-secondary/20 group-hover:border-theme-secondary/40'}`}>
+              {rememberMe && <Check className="w-3 h-3 text-white" />}
+            </div>
+            <input 
+              type="checkbox" 
+              className="sr-only" 
+              checked={rememberMe}
+              onChange={() => setRememberMe(!rememberMe)}
+            />
+            <span className="text-xs font-medium text-theme-secondary opacity-60">Remember my email</span>
+          </label>
+
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={() => onLogin(email || "demo@example.com")}
+              onClick={handleLogin}
               className="py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
             >
               Create Free Account
             </button>
             <button 
-              onClick={() => onLogin(email || "demo@example.com")}
+              onClick={handleLogin}
               className="py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all"
             >
               Sign In
@@ -332,6 +570,158 @@ const AuthGateModal: React.FC<{
         </div>
       </div>
     </Modal>
+  );
+};
+
+const SubscriptionModal: React.FC<{ 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onSubscribe: (plan: 'monthly' | 'yearly') => void;
+  onStartTrial: () => void;
+  user: User | null;
+}> = ({ isOpen, onClose, onSubscribe, onStartTrial, user }) => {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="GlowGuide Premium">
+      <div className="space-y-8 py-4">
+        {EARLY_ACCESS_MODE && (
+          <div className="p-4 bg-accent/10 border-2 border-accent/20 rounded-3xl flex items-center gap-4">
+            <div className="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center shrink-0">
+              <Sparkles className="text-accent w-6 h-6" />
+            </div>
+            <p className="text-xs font-bold text-theme-secondary leading-relaxed">
+              Premium features are currently unlocked during early access. Subscription will be required after launch.
+            </p>
+          </div>
+        )}
+        <div className="text-center space-y-4">
+          <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+            <Award className="w-10 h-10 text-accent" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-bold text-theme-secondary tracking-tight">Unlock Your Best Skin</h3>
+            <p className="text-theme-secondary opacity-60 max-w-sm mx-auto">Get unlimited analyses, long-term tracking, and deeper AI insights.</p>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="p-6 bg-theme-secondary/5 border-2 border-theme-secondary/10 rounded-3xl space-y-4 relative overflow-hidden group hover:border-accent/30 transition-all">
+            <div className="space-y-1">
+              <h4 className="text-lg font-bold text-theme-secondary">Monthly</h4>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-theme-secondary">$9.99</span>
+                <span className="text-sm font-bold text-theme-secondary opacity-40">/mo</span>
+              </div>
+            </div>
+            <ul className="space-y-2">
+              {["Unlimited Analysis", "Save Unlimited Routines", "Skin Progress Tracking"].map(f => (
+                <li key={f} className="flex items-center gap-2 text-xs font-medium text-theme-secondary opacity-70">
+                  <Check className="w-3 h-3 text-accent" /> {f}
+                </li>
+              ))}
+            </ul>
+            <button 
+              onClick={() => onSubscribe('monthly')}
+              className="w-full py-3 bg-theme-secondary text-theme-primary rounded-2xl font-bold text-sm hover:opacity-90 transition-all"
+            >
+              Choose Monthly
+            </button>
+          </div>
+
+          <div className="p-6 bg-accent/5 border-2 border-accent/20 rounded-3xl space-y-4 relative overflow-hidden group hover:border-accent/50 transition-all">
+            <div className="absolute top-3 right-3 bg-accent text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest">Best Value</div>
+            <div className="space-y-1">
+              <h4 className="text-lg font-bold text-theme-secondary">Yearly</h4>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-theme-secondary">$99</span>
+                <span className="text-sm font-bold text-theme-secondary opacity-40">/yr</span>
+              </div>
+              <div className="text-[10px] font-bold text-accent">Save 17% annually</div>
+            </div>
+            <ul className="space-y-2">
+              {["Everything in Monthly", "Priority AI Support", "Early Access Features"].map(f => (
+                <li key={f} className="flex items-center gap-2 text-xs font-medium text-theme-secondary opacity-70">
+                  <Check className="w-3 h-3 text-accent" /> {f}
+                </li>
+              ))}
+            </ul>
+            <button 
+              onClick={() => onSubscribe('yearly')}
+              className="w-full py-3 bg-accent text-white rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+            >
+              Choose Yearly
+            </button>
+          </div>
+        </div>
+
+        {!user?.trialEndDate && (
+          <div className="pt-4 border-t border-theme-secondary/10">
+            <button 
+              onClick={onStartTrial}
+              className="w-full py-4 bg-theme-secondary/5 border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/10 transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-accent" />
+              Start 7-Day Free Trial
+            </button>
+            <p className="text-[10px] text-center mt-3 text-theme-secondary opacity-40 font-medium">No commitment. Cancel anytime.</p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+};
+
+const PremiumGate: React.FC<{ 
+  user: User | null; 
+  feature?: string; 
+  title?: string;
+  description?: string;
+  onUpgrade: () => void; 
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}> = ({ user, feature, title, description, onUpgrade, children, fallback }) => {
+  const isPremium = user?.tier === 'premium';
+  
+  if (isPremium || EARLY_ACCESS_MODE) {
+    return (
+      <div className="relative">
+        {children}
+        {EARLY_ACCESS_MODE && !isPremium && (
+          <div className="absolute top-4 right-4 z-10 pointer-events-none">
+            <div className="bg-accent/90 backdrop-blur-sm text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg flex items-center gap-1">
+              <Sparkles className="w-2 h-2" />
+              Unlocked during early access
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  if (fallback) return <>{fallback}</>;
+
+  return (
+    <div className="relative group">
+      <div className="blur-[2px] pointer-events-none opacity-50">
+        {children}
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center bg-theme-primary/10 backdrop-blur-[1px] rounded-3xl border-2 border-dashed border-theme-secondary/10">
+        <div className="text-center p-6 space-y-4 max-w-xs">
+          <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+            <Award className="w-6 h-6 text-accent" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-bold text-theme-secondary">{title || `${feature} is Premium`}</h4>
+            <p className="text-xs text-theme-secondary opacity-60 leading-relaxed">{description || "Upgrade to unlock this feature and get deeper insights."}</p>
+          </div>
+          <button 
+            onClick={onUpgrade}
+            className="px-6 py-2 bg-accent text-white rounded-xl font-bold text-xs hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+          >
+            Upgrade Now
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -353,6 +743,12 @@ const OnboardingModal: React.FC<{
   });
 
   const questions = [
+    {
+      id: "name",
+      title: "What should we call you?",
+      type: "text",
+      placeholder: "Your name",
+    },
     {
       id: "skinType",
       title: "Skin Type",
@@ -408,12 +804,27 @@ const OnboardingModal: React.FC<{
       } else {
         setShowConfirmation(true);
       }
-    } else {
+    } else if (currentQuestion.type === "multi") {
       const current = (profile[currentQuestion.id as keyof User] as string[]) || [];
       const updated = current.includes(option)
         ? current.filter(o => o !== option)
         : [...current, option];
       setProfile({ ...profile, [currentQuestion.id]: updated });
+    }
+  };
+
+  const handleNextText = () => {
+    if (currentQuestion.id === "name") {
+      const validation = validateDisplayName(profile.name || "");
+      if (!validation.isValid) {
+        alert(validation.error);
+        return;
+      }
+    }
+    if (step < questions.length - 1) {
+      setStep(step + 1);
+    } else {
+      setShowConfirmation(true);
     }
   };
 
@@ -425,13 +836,13 @@ const OnboardingModal: React.FC<{
 
   if (showConfirmation) {
     return (
-      <Modal isOpen={isOpen} onClose={() => {}} title="Profile Ready">
+      <Modal isOpen={isOpen} onClose={() => onComplete({})} title="Profile Ready">
         <div className="text-center space-y-8 py-4">
           <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-2xl font-bold text-theme-secondary">Your skin profile is ready</h3>
+            <h3 className="text-2xl font-bold text-theme-secondary">Your skin profile is ready, {profile.name}!</h3>
             <p className="text-theme-secondary opacity-60">We'll use this to personalize your routine analysis.</p>
           </div>
           <button 
@@ -447,7 +858,7 @@ const OnboardingModal: React.FC<{
 
   if (step === -1) {
     return (
-      <Modal isOpen={isOpen} onClose={() => {}} title="Quick skin profile">
+      <Modal isOpen={isOpen} onClose={() => onComplete({})} title="Quick skin profile">
         <div className="text-center space-y-8 py-4">
           <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
             <UserIcon className="w-10 h-10 text-accent" />
@@ -468,7 +879,7 @@ const OnboardingModal: React.FC<{
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={() => {}} title="Skin Profile">
+    <Modal isOpen={isOpen} onClose={() => onComplete({})} title="Skin Profile">
       <div className="space-y-8">
         <div className="space-y-4">
           <div className="h-1.5 w-full bg-theme-secondary/5 rounded-full overflow-hidden">
@@ -486,28 +897,49 @@ const OnboardingModal: React.FC<{
 
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-theme-secondary">{currentQuestion.title}</h3>
-          <div className="grid gap-3">
-            {currentQuestion.options.map((option) => {
-              const isSelected = currentQuestion.type === "single" 
-                ? profile[currentQuestion.id as keyof User] === option
-                : ((profile[currentQuestion.id as keyof User] as string[]) || []).includes(option);
-              
-              return (
-                <button
-                  key={option}
-                  onClick={() => handleSelect(option)}
-                  className={`p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
-                    isSelected 
-                      ? "border-accent bg-accent/5 text-accent" 
-                      : "border-theme-secondary/10 hover:border-theme-secondary/30 text-theme-secondary"
-                  }`}
-                >
-                  <span className="font-medium">{option}</span>
-                  {isSelected && <CheckCircle2 className="w-5 h-5" />}
-                </button>
-              );
-            })}
-          </div>
+          
+          {currentQuestion.type === "text" ? (
+            <div className="space-y-4">
+              <input 
+                type="text"
+                value={profile[currentQuestion.id as keyof User] as string || ""}
+                onChange={e => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
+                placeholder={currentQuestion.placeholder}
+                className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl outline-none focus:border-accent/50 transition-all"
+                onKeyDown={e => e.key === "Enter" && handleNextText()}
+                autoFocus
+              />
+              <button 
+                onClick={handleNextText}
+                className="w-full py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+              >
+                Next
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {currentQuestion.options?.map((option) => {
+                const isSelected = currentQuestion.type === "single" 
+                  ? profile[currentQuestion.id as keyof User] === option
+                  : ((profile[currentQuestion.id as keyof User] as string[]) || []).includes(option);
+                
+                return (
+                  <button
+                    key={option}
+                    onClick={() => handleSelect(option)}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
+                      isSelected 
+                        ? "border-accent bg-accent/5 text-accent" 
+                        : "border-theme-secondary/10 hover:border-theme-secondary/30 text-theme-secondary"
+                    }`}
+                  >
+                    <span className="font-medium">{option}</span>
+                    {isSelected && <CheckCircle2 className="w-5 h-5" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4">
@@ -653,7 +1085,7 @@ const PrivacyPolicyModal: React.FC<{ isOpen: boolean; onClose: () => void }> = (
 
       <section>
         <h4 className="font-bold text-lg mb-2">Third-party services</h4>
-        <p className="opacity-80">We use AI services to generate skincare guidance. Your inputs may be processed by those services solely to generate results.</p>
+        <p className="opacity-80">We use GlowGuide services to generate skincare guidance. Your inputs may be processed by those services solely to generate results.</p>
       </section>
 
       <section>
@@ -740,8 +1172,9 @@ const TermsConditionsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
 const RoutineBuilder: React.FC<{ 
   user: User | null, 
   onUpdateRoutine: (r: RoutineProduct[]) => void,
-  onLogin: (u: User) => void
-}> = ({ user, onUpdateRoutine, onLogin }) => {
+  onLogin: (u: User) => void,
+  onUpgrade: () => void
+}> = ({ user, onUpdateRoutine, onLogin, onUpgrade }) => {
   const [products, setProducts] = useState<RoutineProduct[]>(user?.routine || []);
   const [isAdding, setIsAdding] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<RoutineProduct>>({
@@ -883,7 +1316,7 @@ const RoutineBuilder: React.FC<{
   );
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-20 px-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-8 px-6">
       <div className="flex justify-between items-start mb-12">
         <div>
           <h2 className="text-3xl font-bold text-accent mb-2">Routine Builder</h2>
@@ -932,7 +1365,7 @@ const RoutineBuilder: React.FC<{
             <h4 className="text-sm font-bold text-theme-secondary">Analysis Failed</h4>
             <p className="text-sm text-theme-secondary opacity-80">
               {error.includes("503") || error.includes("high demand") || error.includes("UNAVAILABLE")
-                ? "The AI service is currently experiencing high demand. We've retried automatically, but if this persists, please try again in a few minutes."
+                ? "The GlowGuide service is currently experiencing high demand. We've retried automatically, but if this persists, please try again in a few minutes."
                 : error}
             </p>
           </div>
@@ -978,7 +1411,7 @@ const RoutineBuilder: React.FC<{
           <div className="flex items-center justify-between mb-10">
             <div>
               <h3 className="text-2xl font-black text-theme-secondary mb-2 tracking-tight">Routine Conflict Analysis</h3>
-              <p className="text-xs font-bold opacity-40 uppercase tracking-widest">AI-Powered Ingredient Check</p>
+              <p className="text-xs font-bold opacity-40 uppercase tracking-widest">GlowGuide Ingredient Check</p>
             </div>
             <div className="flex items-center gap-6">
               {user && (
@@ -1042,6 +1475,41 @@ const RoutineBuilder: React.FC<{
                 <p className="text-sm text-theme-secondary opacity-70 leading-relaxed italic">"{analysis.summary}"</p>
               </div>
             )}
+
+            {/* Structured Insights */}
+            {(analysis.insightObservation || analysis.insightCause || analysis.insightAction) && (
+              <div className="mt-12 space-y-6 pt-12 border-t border-theme-secondary/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+                    <Lightbulb className="w-4 h-4 text-accent" />
+                  </div>
+                  <h4 className="text-lg font-bold text-theme-secondary">Personalized Insights</h4>
+                </div>
+                
+                <div className="grid gap-4">
+                  {analysis.insightObservation && (
+                    <div className="p-6 bg-theme-secondary/5 rounded-3xl border border-theme-secondary/5">
+                      <div className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">Observation</div>
+                      <p className="text-sm text-theme-secondary leading-relaxed font-medium">{analysis.insightObservation}</p>
+                    </div>
+                  )}
+                  {analysis.insightCause && (
+                    <div className="p-6 bg-theme-secondary/5 rounded-3xl border border-theme-secondary/5">
+                      <div className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">Cause</div>
+                      <p className="text-sm text-theme-secondary leading-relaxed font-medium">{analysis.insightCause}</p>
+                    </div>
+                  )}
+                  {analysis.insightAction && (
+                    <div className="p-6 bg-theme-secondary/5 rounded-3xl border border-theme-secondary/5">
+                      <div className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">Action</div>
+                      <p className="text-sm text-theme-secondary leading-relaxed font-medium">{analysis.insightAction}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {user?.tier !== 'premium' && <ConversionPrompt onUpgrade={onUpgrade} />}
           </div>
         </motion.div>
       )}
@@ -1120,14 +1588,14 @@ const RoutineBuilder: React.FC<{
       <AuthGateModal 
         isOpen={showAuthGate}
         onClose={() => setShowAuthGate(false)}
-        onLogin={async (email) => {
+        onLogin={async (email, remember) => {
           const u = await api.login(email);
-          onLogin(u);
+          onLogin(u, remember);
           setShowAuthGate(false);
           alert("Account created! Your routine is now saved to your profile.");
         }}
         title="Unlock Routine Analysis"
-        description="Create a free account to see your health score, compatibility alerts, and save your routine history."
+        description="Create a free account to see your health score and compatibility alerts."
         preview={{
           am: products.filter(p => p.time === "AM" || p.time === "BOTH").map(p => p.name),
           pm: products.filter(p => p.time === "PM" || p.time === "BOTH").map(p => p.name)
@@ -1153,7 +1621,7 @@ const RoutineBuilder: React.FC<{
   );
 };
 
-const ProductComparator: React.FC<{ user: User | null }> = ({ user }) => {
+const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> = ({ user, onUpgrade }) => {
   const [productA, setProductA] = useState({ name: "", ingredients: "" });
   const [productB, setProductB] = useState({ name: "", ingredients: "" });
   const [loading, setLoading] = useState(false);
@@ -1228,10 +1696,20 @@ const ProductComparator: React.FC<{ user: User | null }> = ({ user }) => {
   );
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto py-20 px-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto py-8 px-6">
       <div className="mb-12">
         <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Product Comparison</h2>
         <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Compare two products side-by-side to find the best fit for your skin.</p>
+        {EARLY_ACCESS_MODE && user?.tier !== 'premium' && (
+          <div className="mt-6 p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl flex items-center gap-4">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-full flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-emerald-500" />
+            </div>
+            <p className="text-xs font-bold text-emerald-700 leading-relaxed">
+              You’re using a premium feature — currently unlocked during early testing. Subscription will be required after launch.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -1396,6 +1874,45 @@ const ProductComparator: React.FC<{ user: User | null }> = ({ user }) => {
                 <p className="text-2xl font-bold text-theme-secondary leading-relaxed tracking-tight">{result.summary.finalVerdict}</p>
               </div>
             </div>
+
+            {/* Structured Insights */}
+            {(result.summary.insightObservation || result.summary.insightCause || result.summary.insightAction) && (
+              <div className="mt-12 space-y-6 p-10 bg-theme-secondary/5 rounded-[40px] border border-theme-secondary/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+                    <Lightbulb className="w-5 h-5 text-accent" />
+                  </div>
+                  <h4 className="text-2xl font-bold text-theme-secondary">GlowGuide Insights</h4>
+                </div>
+                
+                <div className="grid gap-6">
+                  {result.summary.insightObservation && (
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black text-accent uppercase tracking-widest">Observation</div>
+                      <p className="text-lg text-theme-secondary leading-relaxed font-medium">{result.summary.insightObservation}</p>
+                    </div>
+                  )}
+                  {result.summary.insightCause && (
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black text-accent uppercase tracking-widest">Cause</div>
+                      <p className="text-base text-theme-secondary opacity-80 leading-relaxed">{result.summary.insightCause}</p>
+                    </div>
+                  )}
+                  {result.summary.insightAction && (
+                    <div className="space-y-2 p-6 bg-accent/5 rounded-2xl border border-accent/10">
+                      <div className="text-[10px] font-black text-accent uppercase tracking-widest mb-1">Action</div>
+                      <p className="text-base font-bold text-theme-secondary">{result.summary.insightAction}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {user?.tier !== 'premium' && (
+              <div className="mt-12">
+                <ConversionPrompt onUpgrade={onUpgrade} />
+              </div>
+            )}
           </div>
         </motion.div>
       )}
@@ -1446,7 +1963,7 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = 
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="max-w-3xl mx-auto py-20 px-6"
+    className="max-w-3xl mx-auto py-8 px-6"
   >
     <div className="text-center mb-16">
       <h1 className="text-5xl font-bold text-theme-secondary tracking-tight mb-6">
@@ -1512,12 +2029,18 @@ const RoutineScoreBreakdown = ({ safety, compatibility, balance }: { safety: num
   </div>
 );
 
-const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
+const RoutineGenerator: React.FC<{ 
+  user: User | null;
+  onUpdateRoutine: (routine: RoutineProduct[]) => void;
+  onLogin: (user: User) => void;
+  onUpgrade: () => void;
+}> = ({ user, onUpdateRoutine, onLogin, onUpgrade }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RoutineResponse | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     skinType: "normal",
     mainConcern: "barrier support",
@@ -1599,7 +2122,18 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
   };
 
   const handleSave = async () => {
-    if (!user || !result) return;
+    if (!result) return;
+    
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (user.tier === 'free' && user.routine && user.routine.length > 0 && !EARLY_ACCESS_MODE) {
+      alert("Free accounts can only save 1 routine. Upgrade to Premium for unlimited saves!");
+      return;
+    }
+
     setIsSaving(true);
     try {
       await api.saveGeneratedRoutine(user.id, result);
@@ -1612,12 +2146,35 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
     }
   };
 
+  const handleAuthLogin = async (email: string, remember: boolean) => {
+    try {
+      const u = await api.login(email);
+      onLogin(u, remember);
+      setIsAuthModalOpen(false);
+      // After login, try saving again if we have a result
+      if (result) {
+        // We need to use the new user object here
+        setIsSaving(true);
+        try {
+          await api.saveGeneratedRoutine(u.id, result);
+          setSaveSuccess(true);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    } catch (e) {
+      console.error("Login error", e);
+    }
+  };
+
   if (result) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-20 px-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-8 px-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
-            <h2 className="text-4xl font-bold text-theme-secondary mb-2">Your AI Routine</h2>
+            <h2 className="text-4xl font-bold text-theme-secondary mb-2">Your GlowGuide Routine</h2>
             <p className="text-theme-secondary opacity-50 font-medium">Personalized for your skin profile</p>
           </div>
           <div className="flex items-center gap-4">
@@ -1716,6 +2273,41 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
           </div>
         </div>
 
+        {/* Structured Insights */}
+        {(result.insightObservation || result.insightCause || result.insightAction) && (
+          <div className="mb-12 space-y-6 p-10 bg-theme-secondary/5 rounded-[40px] border border-theme-secondary/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+                <Lightbulb className="w-5 h-5 text-accent" />
+              </div>
+              <h4 className="text-2xl font-bold text-theme-secondary">GlowGuide Insights</h4>
+            </div>
+            
+            <div className="grid gap-6">
+              {result.insightObservation && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-black text-accent uppercase tracking-widest">Observation</div>
+                  <p className="text-lg text-theme-secondary leading-relaxed font-medium">{result.insightObservation}</p>
+                </div>
+              )}
+              {result.insightCause && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-black text-accent uppercase tracking-widest">Cause</div>
+                  <p className="text-base text-theme-secondary opacity-80 leading-relaxed">{result.insightCause}</p>
+                </div>
+              )}
+              {result.insightAction && (
+                <div className="space-y-2 p-6 bg-accent/5 rounded-2xl border border-accent/10">
+                  <div className="text-[10px] font-black text-accent uppercase tracking-widest mb-1">Action</div>
+                  <p className="text-base font-bold text-theme-secondary">{result.insightAction}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {user?.tier !== 'premium' && <ConversionPrompt onUpgrade={onUpgrade} />}
+
         <button 
           onClick={() => setResult(null)}
           className="w-full py-4 text-theme-secondary opacity-40 hover:opacity-100 font-medium transition-colors"
@@ -1742,11 +2334,11 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-20 px-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-8 px-6">
       <div className="mb-12">
         <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Routine Generator</h2>
         <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">
-          Answer a few questions and our AI will generate a skincare routine tailored to your skin type, concerns, and current products.
+          Answer a few questions and GlowGuide will generate a skincare routine tailored to your skin type, concerns, and current products.
         </p>
       </div>
 
@@ -1759,7 +2351,7 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
               {error.includes("API key not valid") 
                 ? "The Gemini API key is invalid or missing. Please ensure your API key is correctly configured in the AI Studio secrets." 
                 : error.includes("503") || error.includes("high demand") || error.includes("UNAVAILABLE")
-                ? "The AI service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
+                ? "The GlowGuide service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
                 : error}
             </p>
           </div>
@@ -1848,6 +2440,18 @@ const RoutineGenerator: React.FC<{ user: User | null }> = ({ user }) => {
           <p className="text-sm font-bold text-theme-secondary opacity-40">Free • No account required</p>
         </div>
       </form>
+
+      <AuthGateModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLogin={(email, remember) => handleAuthLogin(email, remember)}
+        title="Save Your Routine"
+        description="Create a free account to save your personalized routine and track your progress."
+        preview={{
+          am: result?.am_routine.map(p => p.product),
+          pm: result?.pm_routine.map(p => p.product)
+        }}
+      />
     </motion.div>
   );
 };
@@ -1857,8 +2461,9 @@ const IngredientAnalyzer: React.FC<{
   anonClientId: string | null,
   setActiveTab: (t: string) => void,
   onUpdateRoutine: (r: RoutineProduct[]) => void,
-  onLogin: (u: User) => void
-}> = ({ user, anonClientId, setActiveTab, onUpdateRoutine, onLogin }) => {
+  onLogin: (u: User) => void,
+  onUpgrade: () => void
+}> = ({ user, anonClientId, setActiveTab, onUpdateRoutine, onLogin, onUpgrade }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResponse | null>(null);
@@ -1901,7 +2506,7 @@ const IngredientAnalyzer: React.FC<{
       const usage = await api.checkUsage(anonClientId, user?.id || null);
       setUsageCount(usage.count ?? 0);
       
-      if (!usage.allowed) {
+      if (!usage.allowed && !EARLY_ACCESS_MODE) {
         setError("ANALYZE_LIMIT_REACHED");
         setLoading(false);
         return;
@@ -1984,7 +2589,7 @@ const IngredientAnalyzer: React.FC<{
 
   if (result) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-20 px-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-8 px-6">
         {/* Top Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
@@ -2051,6 +2656,41 @@ const IngredientAnalyzer: React.FC<{
             </p>
           </div>
         )}
+
+        {/* Structured Insights */}
+        {(result.insightObservation || result.insightCause || result.insightAction) && (
+          <div className="mb-12 space-y-6 p-10 bg-theme-secondary/5 rounded-[40px] border border-theme-secondary/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+                <Lightbulb className="w-5 h-5 text-accent" />
+              </div>
+              <h4 className="text-2xl font-bold text-theme-secondary">GlowGuide Insights</h4>
+            </div>
+            
+            <div className="grid gap-6">
+              {result.insightObservation && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-black text-accent uppercase tracking-widest">Observation</div>
+                  <p className="text-lg text-theme-secondary leading-relaxed font-medium">{result.insightObservation}</p>
+                </div>
+              )}
+              {result.insightCause && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-black text-accent uppercase tracking-widest">Cause</div>
+                  <p className="text-base text-theme-secondary opacity-80 leading-relaxed">{result.insightCause}</p>
+                </div>
+              )}
+              {result.insightAction && (
+                <div className="space-y-2 p-6 bg-accent/5 rounded-2xl border border-accent/10">
+                  <div className="text-[10px] font-black text-accent uppercase tracking-widest mb-1">Action</div>
+                  <p className="text-base font-bold text-theme-secondary">{result.insightAction}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {user?.tier !== 'premium' && <ConversionPrompt onUpgrade={onUpgrade} />}
 
         {/* Card Layout */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -2142,9 +2782,9 @@ const IngredientAnalyzer: React.FC<{
         <AuthGateModal 
           isOpen={showAuthGate}
           onClose={() => setShowAuthGate(false)}
-          onLogin={async (email) => {
+          onLogin={async (email, remember) => {
             const u = await api.login(email);
-            onLogin(u);
+            onLogin(u, remember);
             setShowAuthGate(false);
             // After login, we could automatically add it, but for now let's just close
             alert("Account created! You can now add products to your routine.");
@@ -2161,42 +2801,59 @@ const IngredientAnalyzer: React.FC<{
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-20 px-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-8 px-6">
       <div className="mb-12 flex justify-between items-start">
         <div>
           <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Ingredient Analyzer</h2>
           <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Paste an ingredient list to understand skin compatibility and routine fit.</p>
         </div>
-        {!user && usageCount !== null && (
-          <div className="flex flex-col items-end opacity-60 hover:opacity-100 transition-opacity shrink-0">
-            <span className="text-[10px] font-bold text-theme-secondary opacity-50 uppercase tracking-widest mb-1">Daily Limit</span>
-            <div className="text-sm font-bold text-theme-secondary bg-theme-primary px-3 py-1 rounded-xl border-2 border-theme-secondary/10">
-              {usageCount} <span className="opacity-40">/ 3</span>
-            </div>
+        <div className="flex flex-col items-end opacity-60 hover:opacity-100 transition-opacity shrink-0">
+          <span className="text-[10px] font-bold text-theme-secondary opacity-50 uppercase tracking-widest mb-1">Daily Limit</span>
+          <div className="text-sm font-bold text-theme-secondary bg-theme-primary px-3 py-1 rounded-xl border-2 border-theme-secondary/10">
+            {usageCount} <span className="opacity-40">/ {user ? (user.tier === 'premium' || EARLY_ACCESS_MODE ? '∞' : '3') : '1'}</span>
           </div>
-        )}
+        </div>
       </div>
 
       {error && (
-        <div className="mb-10 p-5 bg-rose-500/5 border border-rose-500/20 rounded-3xl flex gap-4 items-start">
+        <div className="mb-10 p-6 bg-rose-500/5 border border-rose-500/20 rounded-3xl flex gap-4 items-start">
           <AlertCircle className="w-6 h-6 text-rose-500 shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1">
             <h4 className="font-bold text-rose-500 mb-1">
               {error === "ANALYZE_LIMIT_REACHED" ? "Limit Reached" : "Analysis Failed"}
             </h4>
-            <p className="text-sm text-theme-secondary opacity-80 leading-relaxed">
+            <div className="text-sm text-theme-secondary opacity-80 leading-relaxed">
               {error === "ANALYZE_LIMIT_REACHED" ? (
-                <>
-                  You’ve used your free product analyses for today.<br />
-                  Create a free account to save your scans and unlock more analyses.<br />
-                  We only store your data if you choose to create an account.
-                </>
-              ) : error.includes("API key not valid") 
-                ? "The Gemini API key is invalid or missing. Please ensure your API key is correctly configured in the AI Studio secrets." 
-                : error.includes("503") || error.includes("high demand") || error.includes("UNAVAILABLE")
-                ? "The AI service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
-                : error}
-            </p>
+                <div className="space-y-4">
+                  <p>You've reached your daily limit for ingredient analysis.</p>
+                  <div className="flex flex-wrap gap-3">
+                    {!user ? (
+                      <button 
+                        onClick={() => setShowAuthGate(true)}
+                        className="px-4 py-2 bg-accent text-white rounded-xl font-bold text-xs hover:opacity-90 transition-all"
+                      >
+                        Create Free Account (3/day)
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={onUpgrade}
+                        className="px-4 py-2 bg-accent text-white rounded-xl font-bold text-xs hover:opacity-90 transition-all"
+                      >
+                        Upgrade to Premium (Unlimited)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p>
+                  {error.includes("API key not valid") 
+                    ? "The Gemini API key is invalid or missing. Please ensure your API key is correctly configured in the AI Studio secrets." 
+                    : error.includes("503") || error.includes("high demand") || error.includes("UNAVAILABLE")
+                    ? "The GlowGuide service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
+                    : error}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -2241,6 +2898,52 @@ const THEMES = [
   { id: 'midnight', name: 'Midnight', accent: '#64748b' },
   { id: 'rose', name: 'Rose', accent: '#f43f5e' },
 ];
+
+const NotificationSettings = ({ user, onUpdate }: { user: User, onUpdate: (u: User) => void }) => {
+  const [prefs, setPrefs] = useState(user.notificationPreferences || {
+    routineReminders: true,
+    progressCuriosity: true,
+    insightAlerts: true,
+    streakMilestones: true,
+    skinTrackingNudges: true
+  });
+
+  const handleToggle = (key: keyof typeof prefs) => {
+    const newPrefs = { ...prefs, [key]: !prefs[key] };
+    setPrefs(newPrefs);
+    onUpdate({ ...user, notificationPreferences: newPrefs });
+  };
+
+  const options = [
+    { key: 'routineReminders', label: 'Routine Reminders', description: 'Morning and night reminders to complete your skincare routine.' },
+    { key: 'progressCuriosity', label: 'Progress Curiosity', description: 'Suggestions for improving your skin score and tracking progress.' },
+    { key: 'insightAlerts', label: 'Insight Alerts', description: 'Alerts for ingredient conflicts or potential skin issues.' },
+    { key: 'streakMilestones', label: 'Streak Milestones', description: 'Celebrations and encouragement for your skincare streaks.' },
+    { key: 'skinTrackingNudges', label: 'Skin Tracking Nudges', description: 'Gentle reminders to log your daily skin condition.' }
+  ];
+
+  return (
+    <div className="space-y-4">
+      {options.map((opt) => (
+        <div key={opt.key} className="flex items-start justify-between p-4 bg-theme-primary rounded-2xl border border-theme-secondary/10">
+          <div className="flex-1 pr-4">
+            <div className="font-bold text-theme-secondary text-sm">{opt.label}</div>
+            <div className="text-[10px] opacity-50 mt-1 leading-relaxed">{opt.description}</div>
+          </div>
+          <button 
+            onClick={() => handleToggle(opt.key as keyof typeof prefs)}
+            className={`w-10 h-6 rounded-full transition-all relative shrink-0 ${prefs[opt.key as keyof typeof prefs] ? 'bg-accent' : 'bg-theme-secondary/20'}`}
+          >
+            <motion.div 
+              animate={{ x: prefs[opt.key as keyof typeof prefs] ? 18 : 2 }}
+              className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-sm"
+            />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const ThemeSettings: React.FC<{ user: User, darkMode: boolean, onUpdateTheme: (themeId: string, accent: string) => void }> = ({ user, darkMode, onUpdateTheme }) => {
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'glow');
@@ -2357,7 +3060,7 @@ const DetailModal = ({ item, type, onClose }: { item: any, type: 'routine' | 'an
               </div>
               {item.tips && (
                 <div className="p-6 bg-theme-secondary/5 rounded-3xl">
-                  <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">AI Tips</h4>
+                  <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">GlowGuide Tips</h4>
                   <ul className="space-y-2">
                     {item.tips.map((tip: string, i: number) => (
                       <li key={i} className="text-sm text-theme-secondary opacity-70 flex gap-2">
@@ -2512,9 +3215,9 @@ const ProfileSettings: React.FC<{ user: User, onUpdate: (profile: Partial<User>)
     setSaving(true);
     setSuccess(false);
     try {
-      const res = await api.updateProfile(user.id, profile);
+      const res = await api.updateProfile(user.id, { ...profile, onboardingCompleted: true });
       if (res.success) {
-        onUpdate(profile);
+        onUpdate({ ...profile, onboardingCompleted: true });
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       }
@@ -2976,7 +3679,7 @@ const SavedItems = ({
                           <Trash className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">AI Generated</div>
+                      <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">GlowGuide Generated</div>
                     </div>
                   </div>
                   <p className="text-xs text-theme-secondary opacity-60 line-clamp-2">{r.morningRoutine}</p>
@@ -3047,11 +3750,13 @@ const SavedItems = ({
 const Dashboard: React.FC<{ 
   user: User | null, 
   darkMode: boolean, 
-  onLogin: (u: User) => void, 
+  onLogin: (u: User, remember: boolean) => void, 
   onUpdateTheme: (themeId: string, accent: string) => void, 
   onUpdateProfile: (p: Partial<User>) => void,
-  setActiveTab: (t: string) => void
-}> = ({ user, darkMode, onLogin, onUpdateTheme, onUpdateProfile, setActiveTab }) => {
+  setActiveTab: (t: string) => void,
+  onUpgrade: () => void,
+  onCancelSubscription: () => void
+}> = ({ user, darkMode, onLogin, onUpdateTheme, onUpdateProfile, setActiveTab, onUpgrade, onCancelSubscription }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [email, setEmail] = useState("");
   const [detailItem, setDetailItem] = useState<{ item: any, type: 'routine' | 'analysis' | 'comparison' } | null>(null);
@@ -3062,9 +3767,28 @@ const Dashboard: React.FC<{
     irritation: 5
   });
   const [isSavingCheckIn, setIsSavingCheckIn] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempName, setTempName] = useState(user?.name || "");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem("glowguide_remembered_email"));
+
+  useEffect(() => {
+    const remembered = localStorage.getItem("glowguide_remembered_email");
+    if (remembered && !email) {
+      setEmail(remembered);
+    }
+  }, []);
+
+  const handleDashboardLogin = async () => {
+    if (rememberMe) {
+      localStorage.setItem("glowguide_remembered_email", email);
+    } else {
+      localStorage.removeItem("glowguide_remembered_email");
+    }
+    const u = await api.login(email || "demo@example.com");
+    onLogin(u, rememberMe);
+  };
 
   const refreshData = () => {
     if (user) {
@@ -3121,6 +3845,11 @@ const Dashboard: React.FC<{
 
   const handleUpdateName = async () => {
     if (!user) return;
+    const validation = validateDisplayName(tempName);
+    if (!validation.isValid) {
+      alert(validation.error);
+      return;
+    }
     setIsUpdatingName(true);
     try {
       await api.updateProfile(user.id, { name: tempName });
@@ -3134,18 +3863,44 @@ const Dashboard: React.FC<{
 
   if (!user) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto py-32 px-6 text-center">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto py-24 px-6 text-center">
         <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
           <ShieldCheck className="w-8 h-8 text-accent" />
         </div>
-        <h2 className="text-2xl font-bold text-theme-secondary mb-4">Save your skincare journey</h2>
-        <div className="text-theme-secondary opacity-60 mb-8 space-y-2 text-sm leading-relaxed">
-          <p>Create a free account to:</p>
-          <ul className="space-y-1">
-            <li>• Build and track your skincare routine</li>
-            <li>• See compatibility scores</li>
-            <li>• Save product history</li>
-          </ul>
+        <h2 className="text-2xl font-bold text-theme-secondary mb-4">Start your skincare journey</h2>
+        
+        <div className="mb-8 overflow-hidden rounded-2xl border border-theme-secondary/10 bg-theme-secondary/5">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-theme-secondary/10">
+                <th className="p-3 font-black text-theme-secondary opacity-40 uppercase tracking-widest">Feature</th>
+                <th className="p-3 font-black text-accent uppercase tracking-widest text-center">Free</th>
+                <th className="p-3 font-black text-accent uppercase tracking-widest text-center">Premium</th>
+              </tr>
+            </thead>
+            <tbody className="text-theme-secondary opacity-70">
+              <tr className="border-b border-theme-secondary/5">
+                <td className="p-3">Routine Saves</td>
+                <td className="p-3 text-center">1</td>
+                <td className="p-3 text-center font-bold">Unlimited</td>
+              </tr>
+              <tr className="border-b border-theme-secondary/5">
+                <td className="p-3">Daily Analysis</td>
+                <td className="p-3 text-center">3</td>
+                <td className="p-3 text-center font-bold">Unlimited</td>
+              </tr>
+              <tr className="border-b border-theme-secondary/5">
+                <td className="p-3">Skin Health Score</td>
+                <td className="p-3 text-center"><Check className="w-3 h-3 mx-auto text-emerald-500" /></td>
+                <td className="p-3 text-center"><Check className="w-3 h-3 mx-auto text-emerald-500" /></td>
+              </tr>
+              <tr>
+                <td className="p-3">Advanced Tracking</td>
+                <td className="p-3 text-center">—</td>
+                <td className="p-3 text-center"><Check className="w-3 h-3 mx-auto text-emerald-500" /></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <div className="space-y-4">
@@ -3159,34 +3914,44 @@ const Dashboard: React.FC<{
               onChange={e => setEmail(e.target.value)}
             />
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer group text-left w-fit">
+            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-accent border-accent' : 'border-theme-secondary/20 group-hover:border-theme-secondary/40'}`}>
+              {rememberMe && <Check className="w-3 h-3 text-white" />}
+            </div>
+            <input 
+              type="checkbox" 
+              className="sr-only" 
+              checked={rememberMe}
+              onChange={() => setRememberMe(!rememberMe)}
+            />
+            <span className="text-xs font-medium text-theme-secondary opacity-60">Remember my email</span>
+          </label>
+
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={async () => {
-                const u = await api.login(email || "demo@example.com");
-                onLogin(u);
-              }}
+              onClick={handleDashboardLogin}
               className="py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
             >
               Create Free Account
             </button>
             <button 
-              onClick={async () => {
-                const u = await api.login(email || "demo@example.com");
-                onLogin(u);
-              }}
+              onClick={handleDashboardLogin}
               className="py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all"
             >
               Sign In
             </button>
           </div>
-          <p className="text-xs text-theme-secondary opacity-40 mt-6">Unlock Routine History, Health Scores, and Compatibility Alerts.</p>
+          <p className="text-[10px] text-theme-secondary opacity-40 mt-6">
+            Join thousands of users tracking their way to better skin.
+          </p>
         </div>
       </motion.div>
     );
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto py-20 px-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto py-8 px-6">
       <AnimatePresence>
         {isSettingsOpen && (
           <>
@@ -3261,6 +4026,13 @@ const Dashboard: React.FC<{
                   </div>
                 </CollapsibleSection>
 
+                {/* Notifications */}
+                <CollapsibleSection title="Notifications" icon={Zap}>
+                  <div className="pt-4">
+                    <NotificationSettings user={user} onUpdate={onUpdateProfile} />
+                  </div>
+                </CollapsibleSection>
+
                 {/* Saved Items */}
                 <CollapsibleSection title="Saved Items" icon={Bookmark}>
                   <div className="pt-4">
@@ -3282,16 +4054,62 @@ const Dashboard: React.FC<{
                   </h3>
                   <div className="flex items-center justify-between p-4 bg-theme-primary rounded-2xl border border-theme-secondary/10">
                     <div>
-                      <div className="font-bold text-theme-secondary">Pro Plan</div>
-                      <div className="text-xs opacity-50">Active until March 2027</div>
+                      <div className="font-bold text-theme-secondary">
+                        {user.tier === 'premium' ? 'Pro Plan' : (EARLY_ACCESS_MODE ? 'Early Access (Pro)' : 'Free Plan')}
+                      </div>
+                      <div className="text-xs opacity-50">
+                        {user.tier === 'premium' 
+                          ? `Active until ${user.subscriptionEndDate ? new Date(user.subscriptionEndDate).toLocaleDateString() : 'Next Billing'}` 
+                          : (EARLY_ACCESS_MODE ? 'Unlocked during early access' : 'Basic features enabled')}
+                      </div>
                     </div>
-                    <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                      Active
+                    <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${user.tier === 'premium' || EARLY_ACCESS_MODE ? 'bg-emerald-500/10 text-emerald-500' : 'bg-theme-secondary/10 text-theme-secondary'}`}>
+                      {user.tier === 'premium' ? 'Active' : (EARLY_ACCESS_MODE ? 'Unlocked' : 'Free')}
                     </div>
                   </div>
-                  <button className="w-full mt-4 py-3 bg-theme-secondary/10 text-theme-secondary rounded-xl font-bold text-sm hover:bg-theme-secondary/20 transition-all">
-                    Manage Subscription
-                  </button>
+                  {user.tier === 'premium' || EARLY_ACCESS_MODE ? (
+                    <div className="space-y-2">
+                      {!showCancelConfirm ? (
+                        <button 
+                          onClick={() => setShowCancelConfirm(true)}
+                          className="w-full mt-4 py-3 bg-theme-secondary/5 text-theme-secondary/60 rounded-xl font-bold text-sm hover:bg-red-500/10 hover:text-red-500 transition-all border border-theme-secondary/10"
+                        >
+                          Cancel Subscription
+                        </button>
+                      ) : (
+                        <div className="mt-4 p-4 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-3">
+                          <p className="text-xs text-red-500 font-medium text-center">Are you sure? You'll lose Pro features at the end of your period.</p>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => setShowCancelConfirm(false)}
+                              className="flex-1 py-2 bg-theme-primary border border-theme-secondary/10 text-theme-secondary rounded-xl text-xs font-bold"
+                            >
+                              Keep Pro
+                            </button>
+                            <button 
+                              onClick={() => {
+                                onCancelSubscription();
+                                setShowCancelConfirm(false);
+                              }}
+                              className="flex-1 py-2 bg-red-500 text-white rounded-xl text-xs font-bold"
+                            >
+                              Yes, Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        onUpgrade();
+                      }}
+                      className="w-full mt-4 py-3 bg-accent text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+                    >
+                      Upgrade to Pro
+                    </button>
+                  )}
                 </section>
               </div>
             </div>
@@ -3312,9 +4130,11 @@ const Dashboard: React.FC<{
             <Settings className="w-6 h-6" />
           </button>
         </div>
-        <div className="hidden md:block px-4 py-2 bg-theme-secondary/10 text-theme-secondary rounded-full text-sm font-bold">
-          PRO MODE
-        </div>
+        {(user.tier === 'premium' || EARLY_ACCESS_MODE) && (
+          <div className="hidden md:block px-4 py-2 bg-accent/10 text-accent rounded-full text-sm font-bold border border-accent/20">
+            {EARLY_ACCESS_MODE && user.tier !== 'premium' ? 'EARLY ACCESS' : 'PRO MODE'}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
@@ -3333,144 +4153,215 @@ const Dashboard: React.FC<{
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-8">
-          <RoutineTracker data={data} userId={user.id} onRefresh={refreshData} />
+      <div className="space-y-16">
+        {/* Section 1: Daily Essentials (Free) */}
+        <section>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center">
+              <Sun className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-theme-secondary">Daily Essentials</h3>
+              <p className="text-xs opacity-40 uppercase tracking-widest">Core routine tracking</p>
+            </div>
+          </div>
           
-          <CollapsibleSection title="Skin Progress Chart" icon={Activity}>
-            <div className="pt-4">
-              <SkinTrendsChart trends={data?.skinTrends || []} />
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-8">
+              <RoutineTracker data={data} userId={user.id} onRefresh={refreshData} />
+              
+              <section className="bg-theme-secondary/5 rounded-[32px] p-8 border border-theme-secondary/10">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-accent">Your Current Routine</h3>
+                  <div className="flex items-center gap-2 text-accent font-bold text-sm">
+                    <Activity className="w-4 h-4" /> Balanced
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
+                      <Sun className="w-3 h-3" /> Morning
+                    </div>
+                    <div className="space-y-2">
+                      {user.routine && user.routine.filter(p => p.time === "AM" || p.time === "BOTH").length > 0 ? (
+                        user.routine.filter(p => p.time === "AM" || p.time === "BOTH").map((p, i) => (
+                          <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent" /> {p.name}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-theme-secondary opacity-40 italic">No AM products</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
+                      <Moon className="w-3 h-3" /> Evening
+                    </div>
+                    <div className="space-y-2">
+                      {user.routine && user.routine.filter(p => p.time === "PM" || p.time === "BOTH").length > 0 ? (
+                        user.routine.filter(p => p.time === "PM" || p.time === "BOTH").map((p, i) => (
+                          <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent" /> {p.name}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-theme-secondary opacity-40 italic">No PM products</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-8 pt-6 border-t border-theme-secondary/10 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Health Score</span>
+                      <span className="text-xl font-black text-accent">{data?.healthScore || 0}%</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab("routine-builder")}
+                    className="text-xs font-bold text-theme-secondary opacity-60 hover:opacity-100 transition-all flex items-center gap-1"
+                  >
+                    Edit Routine <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </section>
             </div>
-          </CollapsibleSection>
 
-          <section className="bg-theme-secondary/5 rounded-[32px] p-8 border border-theme-secondary/10">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-accent">Your Current Routine</h3>
-              <div className="flex items-center gap-2 text-accent font-bold text-sm">
-                <Activity className="w-4 h-4" /> Balanced
-              </div>
+            <div className="space-y-8">
+              <CollapsibleSection title="Daily Check-in" icon={CheckCircle2} defaultOpen={true}>
+                <form className="space-y-4" onSubmit={handleSkinLog}>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Acne</label>
+                      <span className="text-xs font-bold text-accent">{checkInData.acne}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" max="10" 
+                      value={checkInData.acne}
+                      onChange={e => setCheckInData({...checkInData, acne: parseInt(e.target.value)})}
+                      className="w-full accent-theme-secondary" 
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Oiliness</label>
+                      <span className="text-xs font-bold text-accent">{checkInData.oiliness}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" max="10" 
+                      value={checkInData.oiliness}
+                      onChange={e => setCheckInData({...checkInData, oiliness: parseInt(e.target.value)})}
+                      className="w-full accent-theme-secondary" 
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Dryness</label>
+                      <span className="text-xs font-bold text-accent">{checkInData.dryness}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" max="10" 
+                      value={checkInData.dryness}
+                      onChange={e => setCheckInData({...checkInData, dryness: parseInt(e.target.value)})}
+                      className="w-full accent-theme-secondary" 
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Irritation</label>
+                      <span className="text-xs font-bold text-accent">{checkInData.irritation}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" max="10" 
+                      value={checkInData.irritation}
+                      onChange={e => setCheckInData({...checkInData, irritation: parseInt(e.target.value)})}
+                      className="w-full accent-theme-secondary" 
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    disabled={isSavingCheckIn}
+                    className="w-full py-3 bg-theme-primary border border-theme-secondary/20 rounded-xl font-bold hover:bg-theme-secondary/5 transition-all mt-4 shadow-sm disabled:opacity-50"
+                  >
+                    {isSavingCheckIn ? "Saving..." : "Save Check-in"}
+                  </button>
+                </form>
+              </CollapsibleSection>
             </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
-                  <Sun className="w-3 h-3" /> Morning
-                </div>
-                <div className="space-y-2">
-                  {user.routine && user.routine.filter(p => p.time === "AM" || p.time === "BOTH").length > 0 ? (
-                    user.routine.filter(p => p.time === "AM" || p.time === "BOTH").map((p, i) => (
-                      <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-accent" /> {p.name}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-theme-secondary opacity-40 italic">No AM products</p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
-                  <Moon className="w-3 h-3" /> Evening
-                </div>
-                <div className="space-y-2">
-                  {user.routine && user.routine.filter(p => p.time === "PM" || p.time === "BOTH").length > 0 ? (
-                    user.routine.filter(p => p.time === "PM" || p.time === "BOTH").map((p, i) => (
-                      <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-accent" /> {p.name}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-theme-secondary opacity-40 italic">No PM products</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 pt-6 border-t border-theme-secondary/10 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Health Score</span>
-                  <span className="text-xl font-black text-accent">{data?.healthScore || 0}%</span>
-                </div>
-                <div className="flex flex-col border-l border-theme-secondary/10 pl-4">
-                  <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Alerts</span>
-                  <span className="text-xl font-black text-rose-500">0</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setActiveTab("routine-builder")}
-                className="text-xs font-bold text-theme-secondary opacity-60 hover:opacity-100 transition-all flex items-center gap-1"
-              >
-                Edit Routine <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
 
-        <div className="space-y-8">
-          <CollapsibleSection title="Daily Check-in" icon={CheckCircle2} defaultOpen={true}>
-            <form className="space-y-4" onSubmit={handleSkinLog}>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Acne</label>
-                  <span className="text-xs font-bold text-accent">{checkInData.acne}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0" max="10" 
-                  value={checkInData.acne}
-                  onChange={e => setCheckInData({...checkInData, acne: parseInt(e.target.value)})}
-                  className="w-full accent-theme-secondary" 
-                />
+        {/* Section 2: Premium Insights (Pro) */}
+        <section>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center">
+              <Award className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-theme-secondary">Premium Insights</h3>
+              <p className="text-xs opacity-40 uppercase tracking-widest">Advanced analytics & history</p>
+            </div>
+            {user.tier !== 'premium' && (
+              <span className={`ml-2 px-2 py-0.5 ${EARLY_ACCESS_MODE ? 'bg-emerald-500' : 'bg-accent'} text-white text-[8px] font-black rounded-md uppercase tracking-tighter`}>
+                {EARLY_ACCESS_MODE ? 'Unlocked' : 'Locked'}
+              </span>
+            )}
+          </div>
+
+          <PremiumGate 
+            user={user} 
+            onUpgrade={onUpgrade}
+            title="Unlock Advanced Skin Insights"
+            description="Visualize your skin's progress over time, track long-term trends, and access your full history of analyses and comparisons."
+          >
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="md:col-span-2">
+                <SkinTrendsChart trends={data?.skinTrends || []} />
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Oiliness</label>
-                  <span className="text-xs font-bold text-accent">{checkInData.oiliness}</span>
+              <div className="space-y-6">
+                <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
+                  <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">Saved History</h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-theme-secondary/5 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <Bookmark className="w-4 h-4 text-accent" />
+                        <span className="text-xs font-bold text-theme-secondary">Saved Routines</span>
+                      </div>
+                      <span className="text-xs font-black text-accent">{data?.savedRoutines.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-theme-secondary/5 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-accent" />
+                        <span className="text-xs font-bold text-theme-secondary">Analyses</span>
+                      </div>
+                      <span className="text-xs font-black text-accent">{data?.savedAnalyses.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-theme-secondary/5 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-accent" />
+                        <span className="text-xs font-bold text-theme-secondary">Comparisons</span>
+                      </div>
+                      <span className="text-xs font-black text-accent">{data?.savedComparisons.length || 0}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="w-full mt-6 py-3 bg-theme-secondary/10 text-theme-secondary rounded-xl font-bold text-xs hover:bg-theme-secondary/20 transition-all"
+                  >
+                    View All Saved Items
+                  </button>
                 </div>
-                <input 
-                  type="range" 
-                  min="0" max="10" 
-                  value={checkInData.oiliness}
-                  onChange={e => setCheckInData({...checkInData, oiliness: parseInt(e.target.value)})}
-                  className="w-full accent-theme-secondary" 
-                />
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Dryness</label>
-                  <span className="text-xs font-bold text-accent">{checkInData.dryness}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0" max="10" 
-                  value={checkInData.dryness}
-                  onChange={e => setCheckInData({...checkInData, dryness: parseInt(e.target.value)})}
-                  className="w-full accent-theme-secondary" 
-                />
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs uppercase tracking-wider font-bold opacity-50">Irritation</label>
-                  <span className="text-xs font-bold text-accent">{checkInData.irritation}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0" max="10" 
-                  value={checkInData.irritation}
-                  onChange={e => setCheckInData({...checkInData, irritation: parseInt(e.target.value)})}
-                  className="w-full accent-theme-secondary" 
-                />
-              </div>
-              <button 
-                type="submit"
-                disabled={isSavingCheckIn}
-                className="w-full py-3 bg-theme-primary border border-theme-secondary/20 rounded-xl font-bold hover:bg-theme-secondary/5 transition-all mt-4 shadow-sm disabled:opacity-50"
-              >
-                {isSavingCheckIn ? "Saving..." : "Save Check-in"}
-              </button>
-            </form>
-          </CollapsibleSection>
-        </div>
+            </div>
+          </PremiumGate>
+        </section>
       </div>
+
       <AnimatePresence>
         {detailItem && (
           <DetailModal 
@@ -3484,22 +4375,38 @@ const Dashboard: React.FC<{
   );
 };
 
+// --- Helpers ---
+
+const safeJsonParse = (str: string | null) => {
+  if (!str || str === "undefined") return null;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    console.error("Failed to parse JSON:", e);
+    return null;
+  }
+};
+
 // --- Main App ---
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("glowguide_user");
-      return saved ? "dashboard" : "routine";
+      return (saved && saved !== "undefined") ? "dashboard" : "routine";
     }
     return "routine";
   });
   const [user, setUser] = useState<User | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
   const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isFeedbackMinimized, setIsFeedbackMinimized] = useState(false);
   const [anonClientId, setAnonClientId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -3519,8 +4426,15 @@ export default function App() {
     };
     checkApiKey();
     
-    const saved = localStorage.getItem("glowguide_user");
-    if (saved) setUser(JSON.parse(saved));
+    const savedLocal = localStorage.getItem("glowguide_user");
+    const savedSession = sessionStorage.getItem("glowguide_user");
+    if (savedLocal && savedLocal !== "undefined") {
+      const parsed = safeJsonParse(savedLocal);
+      if (parsed) setUser(parsed);
+    } else if (savedSession && savedSession !== "undefined") {
+      const parsed = safeJsonParse(savedSession);
+      if (parsed) setUser(parsed);
+    }
 
     let id = localStorage.getItem("anon_client_id");
     if (!id) {
@@ -3558,6 +4472,14 @@ export default function App() {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    if (user && user.id > 0) {
+      api.getDashboardData(user.id).then(setDashboardData);
+    } else {
+      setDashboardData(null);
+    }
+  }, [user?.id]);
+
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   const handleSelectKey = async () => {
@@ -3567,34 +4489,50 @@ export default function App() {
     }
   };
 
-  const handleLogin = (u: User) => {
+  const handleLogin = (u: User, remember: boolean = true) => {
+    if (!u) return;
     setUser(u);
-    localStorage.setItem("glowguide_user", JSON.stringify(u));
+    if (remember) {
+      localStorage.setItem("glowguide_user", JSON.stringify(u));
+      sessionStorage.removeItem("glowguide_user");
+    } else {
+      sessionStorage.setItem("glowguide_user", JSON.stringify(u));
+      localStorage.removeItem("glowguide_user");
+    }
     if (!u.onboardingCompleted) {
       setIsOnboardingOpen(true);
     }
   };
 
+  const syncUserStorage = (updatedUser: User) => {
+    if (localStorage.getItem("glowguide_user")) {
+      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+    } else if (sessionStorage.getItem("glowguide_user")) {
+      sessionStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+    }
+  };
+
   const handleOnboardingComplete = async (profile: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...profile };
+      const fullProfile = { ...profile, onboardingCompleted: true };
+      const updatedUser = { ...user, ...fullProfile };
       setUser(updatedUser);
-      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
-      await api.updateProfile(user.id, profile);
+      syncUserStorage(updatedUser);
+      await api.updateProfile(user.id, fullProfile);
       setIsOnboardingOpen(false);
     }
   };
 
   const handleUpdateProfile = (profile: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...profile };
+      const updatedUser = { ...user, ...profile, onboardingCompleted: true };
       setUser(updatedUser);
-      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+      syncUserStorage(updatedUser);
     }
   };
 
   const handleUpdateTheme = (themeId: string, accent: string) => {
-    if (user) {
+    if (user && user.id > 0) {
       const updatedUser = { ...user, theme_id: themeId, theme_primary_color: accent, theme_secondary_color: accent };
       setUser(updatedUser);
       localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
@@ -3602,7 +4540,7 @@ export default function App() {
   };
 
   const handleUpdateRoutine = async (routine: RoutineProduct[]) => {
-    if (user) {
+    if (user && user.id > 0) {
       const updatedUser = { ...user, routine };
       setUser(updatedUser);
       localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
@@ -3610,7 +4548,7 @@ export default function App() {
     } else {
       // For anonymous users, we just update the local state which resets on refresh/session end
       // as per requirements.
-      const mockUser = { id: 0, email: "anon", token: "", routine };
+      const mockUser = { id: -1, email: "anon", token: "", routine };
       setUser(mockUser as any);
     }
   };
@@ -3618,7 +4556,49 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("glowguide_user");
+    sessionStorage.removeItem("glowguide_user");
     setActiveTab("routine");
+  };
+
+  const handleStartTrial = async () => {
+    if (!user) return;
+    try {
+      const res = await api.startTrial(user.id);
+      if (res.success) {
+        setUser(res.user);
+        localStorage.setItem("glowguide_user", JSON.stringify(res.user));
+        setIsSubscriptionModalOpen(false);
+      }
+    } catch (e) {
+      console.error("Trial error", e);
+    }
+  };
+
+  const handleSubscribe = async (plan: 'monthly' | 'yearly') => {
+    if (!user) return;
+    try {
+      const res = await api.subscribe(user.id, plan);
+      if (res.success) {
+        setUser(res.user);
+        localStorage.setItem("glowguide_user", JSON.stringify(res.user));
+        setIsSubscriptionModalOpen(false);
+      }
+    } catch (e) {
+      console.error("Subscription error", e);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!user) return;
+    try {
+      const res = await api.cancelSubscription(user.id);
+      if (res.success) {
+        setUser(res.user);
+        localStorage.setItem("glowguide_user", JSON.stringify(res.user));
+      }
+    } catch (e) {
+      console.error("Cancel error", e);
+    }
   };
 
   return (
@@ -3647,6 +4627,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <EarlyAccessBanner />
       <Navbar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -3654,6 +4635,58 @@ export default function App() {
         onLogout={handleLogout} 
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
+        onUpgrade={() => setIsSubscriptionModalOpen(true)}
+        dashboard={dashboardData}
+        onUpdateUser={handleUpdateProfile}
+      />
+
+      <div className="fixed bottom-24 right-0 z-40 flex flex-col items-end">
+        <AnimatePresence mode="wait">
+          {!isFeedbackMinimized ? (
+            <motion.div
+              key="expanded"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: -24 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="relative group flex items-center"
+            >
+              <button 
+                onClick={() => setIsFeedbackOpen(true)}
+                className="p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all"
+              >
+                <MessageSquare className="w-6 h-6 group-hover:text-accent transition-colors" />
+                <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-theme-secondary text-theme-primary text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  Feedback
+                </span>
+              </button>
+              <button 
+                onClick={() => setIsFeedbackMinimized(true)}
+                className="ml-2 p-1 bg-theme-secondary/10 hover:bg-theme-secondary/20 rounded-full text-theme-secondary opacity-0 group-hover:opacity-100 transition-all"
+                title="Minimize"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          ) : (
+            <motion.button
+              key="collapsed"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              onClick={() => setIsFeedbackMinimized(false)}
+              className="bg-accent text-white py-3 px-1.5 rounded-l-xl shadow-lg flex flex-col items-center gap-2 hover:pr-3 transition-all group"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <div className="[writing-mode:vertical-lr] rotate-180 text-[8px] font-black uppercase tracking-widest">Feedback</div>
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <FeedbackModal 
+        isOpen={isFeedbackOpen} 
+        onClose={() => setIsFeedbackOpen(false)} 
+        user={user}
       />
 
       {user && (
@@ -3664,7 +4697,7 @@ export default function App() {
         />
       )}
       
-      <main className="pt-16 pb-20">
+      <main className="pb-20">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             <Home 
@@ -3673,24 +4706,43 @@ export default function App() {
               onLearnMore={() => setIsLearnMoreOpen(true)}
             />
           )}
-          {activeTab === "routine" && <RoutineGenerator key="routine" user={user} />}
+          {activeTab === "routine" && (
+            <RoutineGenerator 
+              key="routine" 
+              user={user} 
+              onUpdateRoutine={handleUpdateRoutine}
+              onLogin={handleLogin}
+              onUpgrade={() => setIsSubscriptionModalOpen(true)}
+            />
+          )}
           {activeTab === "analyze" && (
             <IngredientAnalyzer 
               key="analyze" 
               user={user} 
-              anonClientId={anonClientId} 
+              clientId={anonClientId} 
               setActiveTab={setActiveTab}
               onUpdateRoutine={handleUpdateRoutine}
               onLogin={handleLogin}
+              onUpgrade={() => setIsSubscriptionModalOpen(true)}
             />
           )}
-          {activeTab === "compare" && <ProductComparator key="compare" user={user} />}
+          {activeTab === "compare" && (
+            <PremiumGate 
+              key="compare"
+              user={user} 
+              feature="Product Comparison" 
+              onUpgrade={() => setIsSubscriptionModalOpen(true)}
+            >
+              <ProductComparator user={user} onUpgrade={() => setIsSubscriptionModalOpen(true)} />
+            </PremiumGate>
+          )}
           {activeTab === "routine-builder" && (
             <RoutineBuilder 
               key="routine-builder" 
               user={user} 
               onUpdateRoutine={handleUpdateRoutine} 
               onLogin={handleLogin}
+              onUpgrade={() => setIsSubscriptionModalOpen(true)}
             />
           )}
           {activeTab === "dashboard" && (
@@ -3702,10 +4754,20 @@ export default function App() {
               onUpdateTheme={handleUpdateTheme} 
               onUpdateProfile={handleUpdateProfile}
               setActiveTab={setActiveTab}
+              onUpgrade={() => setIsSubscriptionModalOpen(true)}
+              onCancelSubscription={handleCancelSubscription}
             />
           )}
         </AnimatePresence>
       </main>
+
+      <SubscriptionModal 
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        onSubscribe={handleSubscribe}
+        onStartTrial={handleStartTrial}
+        user={user}
+      />
 
       <LearnMoreModal isOpen={isLearnMoreOpen} onClose={() => setIsLearnMoreOpen(false)} />
       <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />

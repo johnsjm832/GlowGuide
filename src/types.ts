@@ -9,6 +9,9 @@ export interface RoutineResponse {
   whatToIntroduceSlowly: string;
   likelyMistakes: string[];
   expectedResults: string;
+  insightObservation: string;
+  insightCause: string;
+  insightAction: string;
 }
 
 export interface IngredientHighlight {
@@ -27,6 +30,9 @@ export interface AnalysisResponse {
   keyIngredients: string;
   irritationWatchouts: string;
   routineCompatibility: string;
+  insightObservation: string;
+  insightCause: string;
+  insightAction: string;
 }
 
 export interface RoutineProduct {
@@ -51,6 +57,9 @@ export interface RoutineAnalysis {
   balanceScore: number;
   conflicts: RoutineConflict[];
   summary: string;
+  insightObservation: string;
+  insightCause: string;
+  insightAction: string;
 }
 
 export interface ComparisonScore {
@@ -76,6 +85,9 @@ export interface ComparisonResponse {
     higherIrritationRisk: string;
     strongerHydration: string;
     finalVerdict: string;
+    insightObservation: string;
+    insightCause: string;
+    insightAction: string;
   };
 }
 
@@ -96,6 +108,30 @@ export interface User {
   sunscreenUsage?: string;
   onboardingCompleted?: boolean;
   theme_id?: string;
+  tier: 'free' | 'premium';
+  subscriptionStatus?: 'active' | 'trialing' | 'canceled' | 'none';
+  subscriptionEndDate?: string;
+  trialEndDate?: string;
+  notificationPreferences?: {
+    routineReminders: boolean;
+    progressCuriosity: boolean;
+    insightAlerts: boolean;
+    streakMilestones: boolean;
+    skinTrackingNudges: boolean;
+  };
+  lastNotificationSentAt?: string;
+  notificationsHistory?: string[]; // IDs of notification types sent recently to avoid repetition
+}
+
+export interface Notification {
+  id: string;
+  type: "routine" | "progress" | "insight" | "streak" | "tracking";
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  actionLabel?: string;
+  actionTab?: string;
 }
 
 export interface RoutineLog {

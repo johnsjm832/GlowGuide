@@ -27,13 +27,37 @@ export const skincareKeywords = [
   "beef", "tallow", "lard", "fat", "tret", "taz", "aa", "vit", "c", "b5", "b3"
 ];
 
-const profanity = ["fuck", "shit", "asshole", "bitch", "dick", "pussy", "cunt", "bastard", "idiot", "stupid", "dumb", "moron"];
+const profanity = [
+  "fuck", "shit", "asshole", "bitch", "dick", "pussy", "cunt", "bastard", "idiot", "stupid", "dumb", "moron",
+  "nigger", "faggot", "retard", "slut", "whore", "rape", "kill", "die", "suicide", "porn", "sex", "naked"
+];
 
 export interface ValidationResult {
   isValid: boolean;
   isVague?: boolean;
   error?: string;
 }
+
+export const validateDisplayName = (name: string): ValidationResult => {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { isValid: false, error: "Display name cannot be empty." };
+  }
+  if (trimmed.length < 2) {
+    return { isValid: false, error: "Display name is too short." };
+  }
+  if (trimmed.length > 30) {
+    return { isValid: false, error: "Display name is too long." };
+  }
+
+  const lower = trimmed.toLowerCase();
+  const isProfane = profanity.some(p => lower.includes(p));
+  if (isProfane) {
+    return { isValid: false, error: "Please choose a different display name." };
+  }
+
+  return { isValid: true };
+};
 
 export const validateSkincareInput = (text: string): ValidationResult => {
   const trimmed = text.trim();

@@ -1,24 +1,44 @@
-import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
+import * as GenAIModule from "@google/genai";
 import { RoutineResponse, AnalysisResponse, ComparisonResponse, RoutineAnalysis } from "../types.ts";
+
+// Safely extract GoogleGenAI and Type from the module to handle interop issues
+const GoogleGenAI = (GenAIModule as any).GoogleGenAI || (GenAIModule as any).default?.GoogleGenAI || (GenAIModule as any).default || GenAIModule;
+const Type = (GenAIModule as any).Type || (GenAIModule as any).default?.Type;
 
 // Initialize the Gemini AI client
 // Note: process.env.GEMINI_API_KEY is injected by Vite via define in vite.config.ts
 const getAI = () => {
   // Try to get the key from multiple sources
-  // process.env.GEMINI_API_KEY is replaced by Vite at build time
-  // process.env.API_KEY might be injected at runtime in some environments
   const apiKey = process.env.GEMINI_API_KEY || (typeof process !== 'undefined' && process.env ? process.env.API_KEY : null);
   
   if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
-    // If the key is missing, we still return the instance but the call will likely fail
-    // with a more descriptive error from the SDK, or the user will be prompted by the UI
     console.warn("Gemini API key is missing or placeholder. API calls may fail.");
   }
   
-  return new GoogleGenAI({ apiKey: apiKey || "" });
+  if (typeof GoogleGenAI !== 'function') {
+    console.error("GoogleGenAI is not a constructor:", GoogleGenAI);
+    throw new Error("GoogleGenAI constructor not found in @google/genai module");
+  }
+  
+  try {
+    return new (GoogleGenAI as any)({ apiKey: apiKey || "" });
+  } catch (error) {
+    console.error("Error instantiating GoogleGenAI:", error);
+    throw error;
+  }
 };
 
 // Helper for retrying AI calls with exponential backoff
+const safeJsonParse = (str: string | null, fallback: any = {}) => {
+  if (!str || str === "undefined") return fallback;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    console.error("Failed to parse AI JSON:", e, "String:", str);
+    return fallback;
+  }
+};
+
 const withRetry = async <T>(fn: () => Promise<T>, maxRetries = 5): Promise<T> => {
   let lastError: any;
   for (let i = 0; i < maxRetries; i++) {
@@ -75,7 +95,10 @@ export const geminiService = {
           "whatToPause": "...",
           "whatToIntroduceSlowly": "...",
           "likelyMistakes": ["...", "..."],
-          "expectedResults": "..."
+          "expectedResults": "...",
+          "insightObservation": "A personalized observation of what was detected in the routine (e.g., 'Your routine is heavy on exfoliants but light on barrier repair').",
+          "insightCause": "A personalized explanation of why this affects the user's skin (e.g., 'Using AHA and BHA daily without ceramides can thin the stratum corneum, leading to the tightness you mentioned').",
+          "insightAction": "A personalized, simple, actionable recommendation (e.g., 'Switch to the gentle cleanser on nights you exfoliate and add a ceramide-rich cream')."
         }
       `;
 
@@ -99,16 +122,19 @@ export const geminiService = {
                 type: Type.ARRAY,
                 items: { type: Type.STRING }
               },
-              expectedResults: { type: Type.STRING }
+              expectedResults: { type: Type.STRING },
+              insightObservation: { type: Type.STRING },
+              insightCause: { type: Type.STRING },
+              insightAction: { type: Type.STRING }
             },
-            required: ["score", "safetyScore", "compatibilityScore", "balanceScore", "morningRoutine", "eveningRoutine", "whatToPause", "whatToIntroduceSlowly", "likelyMistakes", "expectedResults"]
+            required: ["score", "safetyScore", "compatibilityScore", "balanceScore", "morningRoutine", "eveningRoutine", "whatToPause", "whatToIntroduceSlowly", "likelyMistakes", "expectedResults", "insightObservation", "insightCause", "insightAction"]
           }
         }
       });
 
       const text = response.text;
       if (!text) throw new Error("Empty response from AI");
-      return JSON.parse(text);
+      return safeJsonParse(text);
     });
   },
 
@@ -138,7 +164,10 @@ export const geminiService = {
           "lessSuitableFor": "...",
           "keyIngredients": "...",
           "irritationWatchouts": "...",
-          "routineCompatibility": "..."
+          "routineCompatibility": "...",
+          "insightObservation": "A personalized observation of what was detected in the product (e.g., 'This product contains high concentrations of Niacinamide and Zinc').",
+          "insightCause": "A personalized explanation of why this affects the user's skin (e.g., 'Niacinamide regulates sebum, but at 10% it can be sensitizing for your reported sensitivity level').",
+          "insightAction": "A personalized, simple, actionable recommendation (e.g., 'Patch test on your jawline for 48 hours before full-face application')."
         }
       `;
 
@@ -169,16 +198,19 @@ export const geminiService = {
               lessSuitableFor: { type: Type.STRING },
               keyIngredients: { type: Type.STRING },
               irritationWatchouts: { type: Type.STRING },
-              routineCompatibility: { type: Type.STRING }
+              routineCompatibility: { type: Type.STRING },
+              insightObservation: { type: Type.STRING },
+              insightCause: { type: Type.STRING },
+              insightAction: { type: Type.STRING }
             },
-            required: ["compatibilityScore", "strengths", "potentialConcerns", "bestFor", "ingredientHighlights", "suitableFor", "lessSuitableFor", "keyIngredients", "irritationWatchouts", "routineCompatibility"]
+            required: ["compatibilityScore", "strengths", "potentialConcerns", "bestFor", "ingredientHighlights", "suitableFor", "lessSuitableFor", "keyIngredients", "irritationWatchouts", "routineCompatibility", "insightObservation", "insightCause", "insightAction"]
           }
         }
       });
 
       const text = response.text;
       if (!text) throw new Error("Empty response from AI");
-      return JSON.parse(text);
+      return safeJsonParse(text);
     });
   },
 
@@ -216,7 +248,10 @@ export const geminiService = {
               "recommendation": "Safer usage schedule..."
             }
           ],
-          "summary": "Overall summary of the routine. If no conflicts, say 'No major ingredient conflicts detected. Your routine looks balanced.'"
+          "summary": "Overall summary...",
+          "insightObservation": "A personalized observation of what was detected in the routine (e.g., 'We found a direct conflict between your Retinol and the Glycolic Acid toner').",
+          "insightCause": "A personalized explanation of why this affects the user's skin (e.g., 'Both are potent actives that increase cell turnover; using them together can compromise your skin barrier').",
+          "insightAction": "A personalized, simple, actionable recommendation (e.g., 'Alternate nights: use Retinol on Mon/Wed/Fri and Glycolic Acid on Tue/Thu')."
         }
       `;
 
@@ -244,16 +279,19 @@ export const geminiService = {
                   required: ["ingredients", "explanation", "recommendation"]
                 }
               },
-              summary: { type: Type.STRING }
+              summary: { type: Type.STRING },
+              insightObservation: { type: Type.STRING },
+              insightCause: { type: Type.STRING },
+              insightAction: { type: Type.STRING }
             },
-            required: ["score", "safetyScore", "compatibilityScore", "balanceScore", "conflicts", "summary"]
+            required: ["score", "safetyScore", "compatibilityScore", "balanceScore", "conflicts", "summary", "insightObservation", "insightCause", "insightAction"]
           }
         }
       });
 
       const text = response.text;
       if (!text) throw new Error("Empty response from AI");
-      return JSON.parse(text);
+      return safeJsonParse(text);
     });
   },
 
@@ -292,7 +330,10 @@ export const geminiService = {
             "betterForOily": "string",
             "higherIrritationRisk": "string",
             "strongerHydration": "string",
-            "finalVerdict": "string"
+            "finalVerdict": "string",
+            "insightObservation": "A personalized observation comparing the two (e.g., 'Product A is a pure hydrator, while Product B is a treatment-focused serum').",
+            "insightCause": "A personalized explanation (e.g., 'Product B contains Salicylic Acid which is better for your acne, but Product A has Panthenol which suits your sensitivity').",
+            "insightAction": "A personalized recommendation (e.g., 'Choose Product A for daily use and keep Product B for spot treatments')."
           }
         }
       `;
@@ -366,9 +407,12 @@ export const geminiService = {
                   betterForOily: { type: Type.STRING },
                   higherIrritationRisk: { type: Type.STRING },
                   strongerHydration: { type: Type.STRING },
-                  finalVerdict: { type: Type.STRING }
+                  finalVerdict: { type: Type.STRING },
+                  insightObservation: { type: Type.STRING },
+                  insightCause: { type: Type.STRING },
+                  insightAction: { type: Type.STRING }
                 },
-                required: ["betterForDry", "betterForOily", "higherIrritationRisk", "strongerHydration", "finalVerdict"]
+                required: ["betterForDry", "betterForOily", "higherIrritationRisk", "strongerHydration", "finalVerdict", "insightObservation", "insightCause", "insightAction"]
               }
             },
             required: ["hydrationSupport", "irritationRisk", "poreClogRisk", "barrierSupport", "activeStrength", "skinTypeCompatibility", "summary"]
@@ -378,7 +422,7 @@ export const geminiService = {
 
       const text = response.text;
       if (!text) throw new Error("Empty response from AI");
-      return JSON.parse(text);
+      return safeJsonParse(text);
     });
   }
 };

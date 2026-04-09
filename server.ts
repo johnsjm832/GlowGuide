@@ -20,6 +20,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE,
     password TEXT,
+    name TEXT DEFAULT NULL,
     theme_primary_color TEXT DEFAULT NULL,
     theme_secondary_color TEXT DEFAULT NULL,
     routine TEXT DEFAULT '[]',
@@ -30,7 +31,11 @@ db.exec(`
     routine_size TEXT DEFAULT NULL,
     avoid_ingredients TEXT DEFAULT '[]',
     sunscreen_usage TEXT DEFAULT NULL,
-    onboarding_completed BOOLEAN DEFAULT 0
+    onboarding_completed BOOLEAN DEFAULT 0,
+    tier TEXT DEFAULT 'free',
+    subscription_status TEXT DEFAULT 'none',
+    subscription_end_date DATETIME DEFAULT NULL,
+    trial_end_date DATETIME DEFAULT NULL
   );
   CREATE TABLE IF NOT EXISTS saved_routines (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +64,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS usage_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     anon_client_id TEXT,
+    user_id INTEGER DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   CREATE TABLE IF NOT EXISTS saved_comparisons (
@@ -85,6 +91,14 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
+  CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER DEFAULT NULL,
+    email TEXT,
+    message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
   
   -- Migration: Reset old green theme colors to NULL to respect new default theme
   UPDATE users SET theme_primary_color = NULL, theme_secondary_color = NULL WHERE theme_primary_color = '#10b981';
@@ -92,6 +106,7 @@ db.exec(`
 
 // Migration: Add missing columns to users table if they don't exist
 const columns = [
+  ['name', 'TEXT DEFAULT NULL'],
   ['skin_type', 'TEXT DEFAULT NULL'],
   ['sensitivity', 'TEXT DEFAULT NULL'],
   ['concerns', "TEXT DEFAULT '[]'"],
@@ -100,7 +115,11 @@ const columns = [
   ['avoid_ingredients', "TEXT DEFAULT '[]'"],
   ['sunscreen_usage', 'TEXT DEFAULT NULL'],
   ['onboarding_completed', 'BOOLEAN DEFAULT 0'],
-  ['theme_id', "TEXT DEFAULT 'glow'"]
+  ['theme_id', "TEXT DEFAULT 'glow'"],
+  ['tier', "TEXT DEFAULT 'free'"],
+  ['subscription_status', "TEXT DEFAULT 'none'"],
+  ['subscription_end_date', 'DATETIME DEFAULT NULL'],
+  ['trial_end_date', 'DATETIME DEFAULT NULL']
 ];
 
 for (const [name, def] of columns) {
@@ -112,41 +131,70 @@ for (const [name, def] of columns) {
   }
 }
 
+// Migration: Add user_id to usage_logs if it doesn't exist
+try {
+  db.exec(`ALTER TABLE usage_logs ADD COLUMN user_id INTEGER DEFAULT NULL`);
+  console.log(`Migration: Added column user_id to usage_logs table.`);
+} catch (e) {}
+
 app.use(express.json());
+
+const safeJsonParse = (str: string | null, fallback: any = []) => {
+  if (!str || str === "undefined") return fallback;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    console.error("Failed to parse JSON:", e, "String:", str);
+    return fallback;
+  }
+};
 
 // --- API Routes ---
 
-// 1. Usage Tracking (Anonymous Limits)
+// 1. Usage Tracking (Tiered Limits)
 app.post("/api/usage/check", (req, res) => {
   const { clientId, userId } = req.body;
-
-  // Authenticated users have no limit
-  if (userId) {
-    return res.json({ allowed: true });
-  }
-
-  if (!clientId) {
-    return res.status(400).json({ error: "MISSING_CLIENT_ID" });
-  }
 
   // Cleanup old logs (older than 24 hours)
   db.prepare("DELETE FROM usage_logs WHERE created_at < datetime('now', '-24 hours')").run();
 
-  // Count usage in last 24 hours
-  const row = db.prepare("SELECT COUNT(*) as count FROM usage_logs WHERE anon_client_id = ? AND created_at > datetime('now', '-24 hours')").get(clientId) as { count: number };
+  if (userId) {
+    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId) as any;
+    if (!user) return res.status(404).json({ error: "USER_NOT_FOUND" });
 
-  if (row.count >= 3) {
-    return res.json({ allowed: false, error: "ANALYZE_LIMIT_REACHED", count: row.count });
+    if (user.tier === 'premium') {
+      return res.json({ allowed: true, tier: 'premium' });
+    }
+
+    // Free tier: 3 per 24 hours
+    const row = db.prepare("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND created_at > datetime('now', '-24 hours')").get(userId) as { count: number };
+    
+    if (row.count >= 3) {
+      return res.json({ allowed: false, error: "FREE_LIMIT_REACHED", count: row.count, tier: 'free' });
+    }
+    return res.json({ allowed: true, count: row.count, tier: 'free' });
   }
 
-  res.json({ allowed: true, count: row.count });
+  // Guest tier: 1 per 24 hours
+  if (!clientId) {
+    return res.status(400).json({ error: "MISSING_CLIENT_ID" });
+  }
+
+  const row = db.prepare("SELECT COUNT(*) as count FROM usage_logs WHERE anon_client_id = ? AND created_at > datetime('now', '-24 hours')").get(clientId) as { count: number };
+
+  if (row.count >= 1) {
+    return res.json({ allowed: false, error: "GUEST_LIMIT_REACHED", count: row.count, tier: 'guest' });
+  }
+
+  res.json({ allowed: true, count: row.count, tier: 'guest' });
 });
 
 app.post("/api/usage/log", (req, res) => {
   const { clientId, userId } = req.body;
 
-  // Only log for anonymous users
-  if (!userId && clientId) {
+  if (userId && userId > 0) {
+    db.prepare("INSERT INTO usage_logs (user_id) VALUES (?)").run(userId);
+  } else if (clientId) {
     db.prepare("INSERT INTO usage_logs (anon_client_id) VALUES (?)").run(clientId);
   }
 
@@ -167,25 +215,36 @@ app.post("/api/auth/login", (req, res) => {
   res.json({ 
     id: user.id, 
     email: user.email, 
+    name: user.name || null,
     token: "mock-jwt-token",
     theme_primary_color: user.theme_primary_color || null,
     theme_secondary_color: user.theme_secondary_color || null,
-    routine: JSON.parse(user.routine || '[]'),
+    routine: safeJsonParse(user.routine),
     skinType: user.skin_type || null,
     sensitivity: user.sensitivity || null,
-    concerns: JSON.parse(user.concerns || '[]'),
+    concerns: safeJsonParse(user.concerns),
     breakoutFrequency: user.breakout_frequency || null,
     routineSize: user.routine_size || null,
-    avoidIngredients: JSON.parse(user.avoid_ingredients || '[]'),
+    avoidIngredients: safeJsonParse(user.avoid_ingredients),
     sunscreenUsage: user.sunscreen_usage || null,
     onboardingCompleted: !!user.onboarding_completed,
-    theme_id: user.theme_id || 'glow'
+    theme_id: user.theme_id || 'glow',
+    tier: user.tier || 'free',
+    subscriptionStatus: user.subscription_status || 'none',
+    subscriptionEndDate: user.subscription_end_date || null,
+    trialEndDate: user.trial_end_date || null
   });
 });
+
+const profanity = [
+  "fuck", "shit", "asshole", "bitch", "dick", "pussy", "cunt", "bastard", "idiot", "stupid", "dumb", "moron",
+  "nigger", "faggot", "retard", "slut", "whore", "rape", "kill", "die", "suicide", "porn", "sex", "naked"
+];
 
 app.post("/api/user/profile", (req, res) => {
   const { 
     userId, 
+    name,
     skinType, 
     sensitivity, 
     concerns, 
@@ -198,26 +257,36 @@ app.post("/api/user/profile", (req, res) => {
 
   if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
 
+  // Profanity check for name
+  if (name) {
+    const lower = name.toLowerCase();
+    if (profanity.some(p => lower.includes(p))) {
+      return res.status(400).json({ error: "INVALID_NAME" });
+    }
+  }
+
   db.prepare(`
     UPDATE users SET 
-      skin_type = ?, 
-      sensitivity = ?, 
-      concerns = ?, 
-      breakout_frequency = ?, 
-      routine_size = ?, 
-      avoid_ingredients = ?, 
-      sunscreen_usage = ?,
-      onboarding_completed = ?
+      name = COALESCE(?, name),
+      skin_type = COALESCE(?, skin_type), 
+      sensitivity = COALESCE(?, sensitivity), 
+      concerns = COALESCE(?, concerns), 
+      breakout_frequency = COALESCE(?, breakout_frequency), 
+      routine_size = COALESCE(?, routine_size), 
+      avoid_ingredients = COALESCE(?, avoid_ingredients), 
+      sunscreen_usage = COALESCE(?, sunscreen_usage),
+      onboarding_completed = COALESCE(?, onboarding_completed)
     WHERE id = ?
   `).run(
-    skinType, 
-    sensitivity, 
-    JSON.stringify(concerns || []), 
-    breakoutFrequency, 
-    routineSize, 
-    JSON.stringify(avoidIngredients || []), 
-    sunscreenUsage,
-    onboardingCompleted ? 1 : 0,
+    name || null,
+    skinType || null, 
+    sensitivity || null, 
+    concerns ? JSON.stringify(concerns) : null, 
+    breakoutFrequency || null, 
+    routineSize || null, 
+    avoidIngredients ? JSON.stringify(avoidIngredients) : null, 
+    sunscreenUsage || null,
+    onboardingCompleted !== undefined ? (onboardingCompleted ? 1 : 0) : null,
     userId
   );
 
@@ -258,7 +327,7 @@ app.post("/api/user/theme", (req, res) => {
 
 app.post("/api/user/routine", (req, res) => {
   const { userId, routine } = req.body;
-  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+  if (!userId || userId <= 0) return res.status(401).json({ error: "UNAUTHORIZED" });
   
   db.prepare("UPDATE users SET routine = ? WHERE id = ?").run(JSON.stringify(routine), userId);
   res.json({ success: true });
@@ -269,12 +338,12 @@ app.get("/api/user/routine/:userId", (req, res) => {
   const user = db.prepare("SELECT routine FROM users WHERE id = ?").get(userId) as any;
   if (!user) return res.status(404).json({ error: "USER_NOT_FOUND" });
   
-  res.json({ routine: JSON.parse(user.routine || '[]') });
+  res.json({ routine: safeJsonParse(user.routine) });
 });
 
 app.post("/api/user/analysis", (req, res) => {
   const { userId, analysis } = req.body;
-  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+  if (!userId || userId <= 0) return res.status(401).json({ error: "UNAUTHORIZED" });
   
   db.prepare("INSERT INTO saved_analyses (user_id, data) VALUES (?, ?)").run(userId, JSON.stringify(analysis));
   res.json({ success: true });
@@ -284,7 +353,7 @@ app.get("/api/user/analyses/:userId", (req, res) => {
   const { userId } = req.params;
   const rows = db.prepare("SELECT id, data, created_at FROM saved_analyses WHERE user_id = ? ORDER BY created_at DESC").all(userId) as any[];
   
-  res.json({ analyses: rows.map(r => ({ id: r.id, ...JSON.parse(r.data), createdAt: r.created_at })) });
+  res.json({ analyses: rows.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })) });
 });
 
 app.delete("/api/user/analysis/:id", (req, res) => {
@@ -295,7 +364,7 @@ app.delete("/api/user/analysis/:id", (req, res) => {
 
 app.post("/api/user/saved-routine", (req, res) => {
   const { userId, routine } = req.body;
-  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+  if (!userId || userId <= 0) return res.status(401).json({ error: "UNAUTHORIZED" });
   
   db.prepare("INSERT INTO saved_routines (user_id, data) VALUES (?, ?)").run(userId, JSON.stringify(routine));
   res.json({ success: true });
@@ -305,7 +374,7 @@ app.get("/api/user/saved-routines/:userId", (req, res) => {
   const { userId } = req.params;
   const rows = db.prepare("SELECT id, data, created_at FROM saved_routines WHERE user_id = ? ORDER BY created_at DESC").all(userId) as any[];
   
-  res.json({ routines: rows.map(r => ({ id: r.id, ...JSON.parse(r.data), createdAt: r.created_at })) });
+  res.json({ routines: rows.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })) });
 });
 
 app.delete("/api/user/saved-routine/:id", (req, res) => {
@@ -316,7 +385,7 @@ app.delete("/api/user/saved-routine/:id", (req, res) => {
 
 app.post("/api/user/comparison", (req, res) => {
   const { userId, comparison } = req.body;
-  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+  if (!userId || userId <= 0) return res.status(401).json({ error: "UNAUTHORIZED" });
   
   db.prepare("INSERT INTO saved_comparisons (user_id, data) VALUES (?, ?)").run(userId, JSON.stringify(comparison));
   res.json({ success: true });
@@ -326,7 +395,7 @@ app.get("/api/user/comparisons/:userId", (req, res) => {
   const { userId } = req.params;
   const rows = db.prepare("SELECT id, data, created_at FROM saved_comparisons WHERE user_id = ? ORDER BY created_at DESC").all(userId) as any[];
   
-  res.json({ comparisons: rows.map(r => ({ id: r.id, ...JSON.parse(r.data), createdAt: r.created_at })) });
+  res.json({ comparisons: rows.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })) });
 });
 
 app.delete("/api/user/comparison/:id", (req, res) => {
@@ -424,9 +493,9 @@ app.get("/api/dashboard/data/:userId", (req, res) => {
   const healthScoreTrend = healthScore - prevScore;
 
   res.json({
-    savedRoutines: routines.map(r => ({ id: r.id, ...JSON.parse(r.data), createdAt: r.created_at })),
-    savedAnalyses: analyses.map(r => ({ id: r.id, ...JSON.parse(r.data), createdAt: r.created_at })),
-    savedComparisons: comparisons.map(r => ({ id: r.id, ...JSON.parse(r.data), createdAt: r.created_at })),
+    savedRoutines: routines.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
+    savedAnalyses: analyses.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
+    savedComparisons: comparisons.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
     lastCheckIn,
     routineScore: 85, // Mock score for now
     scansCount: analyses.length,
@@ -441,7 +510,7 @@ app.get("/api/dashboard/data/:userId", (req, res) => {
 
 app.post("/api/routine/log", (req, res) => {
   const { userId, type } = req.body;
-  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+  if (!userId || userId <= 0) return res.status(401).json({ error: "UNAUTHORIZED" });
 
   // Prevent double logging same type on same day
   const existing = db.prepare(`
@@ -459,7 +528,7 @@ app.post("/api/routine/log", (req, res) => {
 
 app.post("/api/skin/log", (req, res) => {
   const { userId, acne, oiliness, dryness, irritation } = req.body;
-  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+  if (!userId || userId <= 0) return res.status(401).json({ error: "UNAUTHORIZED" });
 
   // Only one skin log per day
   const existing = db.prepare(`
@@ -484,6 +553,76 @@ app.post("/api/skin/log", (req, res) => {
 });
 
 app.post("/api/dashboard/check-in", (req, res) => {
+  res.json({ success: true });
+});
+
+// 8. Subscriptions
+app.post("/api/subscription/start-trial", (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+
+  const trialEndDate = new Date();
+  trialEndDate.setDate(trialEndDate.getDate() + 7);
+
+  db.prepare(`
+    UPDATE users SET 
+      tier = 'premium',
+      subscription_status = 'trialing',
+      trial_end_date = ?
+    WHERE id = ?
+  `).run(trialEndDate.toISOString(), userId);
+
+  res.json({ success: true, tier: 'premium', subscriptionStatus: 'trialing', trialEndDate: trialEndDate.toISOString() });
+});
+
+app.post("/api/subscription/subscribe", (req, res) => {
+  const { userId, plan } = req.body; // 'monthly' or 'yearly'
+  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+
+  const endDate = new Date();
+  if (plan === 'yearly') {
+    endDate.setFullYear(endDate.getFullYear() + 1);
+  } else {
+    endDate.setMonth(endDate.getMonth() + 1);
+  }
+
+  db.prepare(`
+    UPDATE users SET 
+      tier = 'premium',
+      subscription_status = 'active',
+      subscription_end_date = ?
+    WHERE id = ?
+  `).run(endDate.toISOString(), userId);
+
+  res.json({ success: true, tier: 'premium', subscriptionStatus: 'active', subscriptionEndDate: endDate.toISOString() });
+});
+
+app.post("/api/subscription/cancel", (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+
+  db.prepare(`
+    UPDATE users SET 
+      subscription_status = 'canceled'
+    WHERE id = ?
+  `).run(userId);
+
+  res.json({ success: true, subscriptionStatus: 'canceled' });
+});
+
+app.post("/api/feedback", (req, res) => {
+  const { userId, email, message } = req.body;
+  
+  if (!message) {
+    return res.status(400).json({ error: "MISSING_MESSAGE" });
+  }
+
+  db.prepare("INSERT INTO feedback (user_id, email, message) VALUES (?, ?, ?)").run(
+    userId || null,
+    email || null,
+    message
+  );
+
   res.json({ success: true });
 });
 

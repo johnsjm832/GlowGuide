@@ -135,4 +135,40 @@ export const api = {
   async deleteComparison(id: number): Promise<void> {
     await fetch(`/api/user/comparison/${id}`, { method: "DELETE" });
   },
+
+  async startTrial(userId: number): Promise<{ success: boolean; user: User }> {
+    const res = await fetch("/api/subscription/start-trial", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    return res.json();
+  },
+
+  async subscribe(userId: number, plan: 'monthly' | 'yearly'): Promise<{ success: boolean; user: User }> {
+    const res = await fetch("/api/subscription/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, plan }),
+    });
+    return res.json();
+  },
+
+  async cancelSubscription(userId: number): Promise<{ success: boolean; user: User }> {
+    const res = await fetch("/api/subscription/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    return res.json();
+  },
+  
+  async sendFeedback(userId: number | null, email: string | null, message: string): Promise<{ success: boolean; error?: string }> {
+    const res = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, email, message }),
+    });
+    return res.json();
+  },
 };
