@@ -92,7 +92,7 @@ export interface ComparisonResponse {
 }
 
 export interface User {
-  id: number;
+  id: string | number;
   email: string;
   name?: string;
   token: string;

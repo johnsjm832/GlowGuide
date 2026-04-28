@@ -18,6 +18,20 @@ import { api } from "./services/api";
 import { geminiService } from "./services/geminiService";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { validateSkincareInput, validateDisplayName } from "./utils/validation";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged,
+  signOut
+} from "firebase/auth";
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  serverTimestamp 
+} from "firebase/firestore";
+import { auth, db } from "./lib/firebase";
 import { RoutineResponse, AnalysisResponse, User, DashboardData, RoutineProduct, RoutineAnalysis, ComparisonResponse, RoutineLog, SkinLog } from "./types.ts";
 
 const EARLY_ACCESS_MODE = true;
@@ -447,21 +461,90 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
 const AuthGateModal: React.FC<{ 
   isOpen: boolean; 
   onClose: () => void; 
-  onLogin: (email: string, remember: boolean) => void;
+  onLogin: (u: User, remember: boolean) => void;
   title: string;
   description: string;
   preview?: { am?: string[]; pm?: string[] };
 }> = ({ isOpen, onClose, onLogin, title, description, preview }) => {
   const [email, setEmail] = useState(() => localStorage.getItem("glowguide_remembered_email") || "");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem("glowguide_remembered_email"));
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    if (rememberMe) {
-      localStorage.setItem("glowguide_remembered_email", email);
-    } else {
-      localStorage.removeItem("glowguide_remembered_email");
+  const handleAction = async (isSignUp: boolean) => {
+    if (!email || !password) {
+      setError("Please enter both email and password.");
+      return;
     }
-    onLogin(email || "demo@example.com", rememberMe);
+    setIsLoading(true);
+    setError(null);
+    try {
+      if (isSignUp) {
+        let userCredential;
+        try {
+          userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        } catch (err: any) {
+          if (err.code === 'auth/email-already-in-use') {
+            throw new Error("This email is already in use. Please sign in instead.");
+          }
+          throw err;
+        }
+        
+        const newUser: User = {
+          id: userCredential.user.uid,
+          email: email,
+          token: userCredential.user.uid,
+          tier: 'free',
+          subscriptionStatus: 'none',
+          onboardingCompleted: false,
+          routine: []
+        };
+        
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          ...newUser,
+          createdAt: serverTimestamp()
+        });
+        
+        onLogin(newUser, rememberMe);
+      } else {
+        let userCredential;
+        try {
+          userCredential = await signInWithEmailAndPassword(auth, email, password);
+        } catch (err: any) {
+          if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            throw new Error("We couldn't find an account matching those credentials. Please check your email or create a new account.");
+          }
+          throw err;
+        }
+        
+        const docSnap = await getDoc(doc(db, "users", userCredential.user.uid));
+        if (docSnap.exists()) {
+          onLogin(docSnap.data() as User, rememberMe);
+        } else {
+          // Fallback if doc is missing
+          const restoredUser: User = {
+            id: Date.now(),
+            email: email,
+            token: userCredential.user.uid,
+            tier: 'free',
+            onboardingCompleted: true
+          };
+          onLogin(restoredUser, rememberMe);
+        }
+      }
+      
+      if (rememberMe) {
+        localStorage.setItem("glowguide_remembered_email", email);
+      } else {
+        localStorage.removeItem("glowguide_remembered_email");
+      }
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -473,6 +556,13 @@ const AuthGateModal: React.FC<{
           </div>
           <p className="text-theme-secondary opacity-70 leading-relaxed">{description}</p>
         </div>
+
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500 text-xs font-bold animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 mb-4 text-left">
           <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10">
@@ -531,9 +621,22 @@ const AuthGateModal: React.FC<{
             <input 
               type="email"
               placeholder="Enter your email"
-              className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl outline-none focus:border-accent/50 transition-all"
+              className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl outline-none focus:border-accent/50 transition-all font-medium"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Password</label>
+            <input 
+              type="password"
+              placeholder="••••••••"
+              className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl outline-none focus:border-accent/50 transition-all font-medium"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              disabled={isLoading}
             />
           </div>
           
@@ -546,22 +649,25 @@ const AuthGateModal: React.FC<{
               className="sr-only" 
               checked={rememberMe}
               onChange={() => setRememberMe(!rememberMe)}
+              disabled={isLoading}
             />
             <span className="text-xs font-medium text-theme-secondary opacity-60">Remember my email</span>
           </label>
 
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={handleLogin}
-              className="py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+              onClick={() => handleAction(true)}
+              disabled={isLoading}
+              className="py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
             >
-              Create Free Account
+              {isLoading ? "..." : "Create Account"}
             </button>
             <button 
-              onClick={handleLogin}
-              className="py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all"
+              onClick={() => handleAction(false)}
+              disabled={isLoading}
+              className="py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all disabled:opacity-50"
             >
-              Sign In
+              {isLoading ? "..." : "Sign In"}
             </button>
           </div>
           <p className="text-center text-[10px] text-theme-secondary opacity-40">
@@ -665,6 +771,23 @@ const SubscriptionModal: React.FC<{
             <p className="text-[10px] text-center mt-3 text-theme-secondary opacity-40 font-medium">No commitment. Cancel anytime.</p>
           </div>
         )}
+
+        <div className="pt-6 flex flex-col items-center gap-3">
+          <p className="text-[9px] font-black text-theme-secondary opacity-20 uppercase tracking-[0.2em]">Featured On</p>
+          <a 
+            href="https://www.producthunt.com/products/glowguide-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-glowguide-beta" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="transition-transform hover:scale-105 active:scale-95 duration-300 opacity-80 hover:opacity-100"
+          >
+            <img 
+              alt="GlowGuide Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
+              width="200" 
+              height="43" 
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1126955&theme=light&t=1776542664167"
+            />
+          </a>
+        </div>
       </div>
     </Modal>
   );
@@ -1588,8 +1711,7 @@ const RoutineBuilder: React.FC<{
       <AuthGateModal 
         isOpen={showAuthGate}
         onClose={() => setShowAuthGate(false)}
-        onLogin={async (email, remember) => {
-          const u = await api.login(email);
+        onLogin={(u, remember) => {
           onLogin(u, remember);
           setShowAuthGate(false);
           alert("Account created! Your routine is now saved to your profile.");
@@ -1972,7 +2094,7 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = 
       <p className="text-xl text-theme-secondary opacity-80 mb-10 leading-relaxed">
         Neutral, science-backed skincare guidance. Generate routines or analyze ingredients without the marketing hype.
       </p>
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
         <button 
           onClick={onStartRoutine}
           className="px-8 py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-semibold hover:bg-theme-secondary/5 transition-all flex items-center justify-center gap-2 shadow-md shadow-theme-secondary/5"
@@ -1985,6 +2107,22 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = 
         >
           Learn More
         </button>
+      </div>
+
+      <div className="mt-12 flex justify-center">
+        <a 
+          href="https://www.producthunt.com/products/glowguide-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-glowguide-beta" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="transition-transform hover:scale-105 active:scale-95 duration-300"
+        >
+          <img 
+            alt="GlowGuide Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
+            width="250" 
+            height="54" 
+            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1126955&theme=light&t=1776542664167"
+          />
+        </a>
       </div>
     </div>
     <PrivacyNotice />
@@ -2146,9 +2284,8 @@ const RoutineGenerator: React.FC<{
     }
   };
 
-  const handleAuthLogin = async (email: string, remember: boolean) => {
+  const handleAuthLogin = async (u: User, remember: boolean) => {
     try {
-      const u = await api.login(email);
       onLogin(u, remember);
       setIsAuthModalOpen(false);
       // After login, try saving again if we have a result
@@ -2782,8 +2919,7 @@ const IngredientAnalyzer: React.FC<{
         <AuthGateModal 
           isOpen={showAuthGate}
           onClose={() => setShowAuthGate(false)}
-          onLogin={async (email, remember) => {
-            const u = await api.login(email);
+          onLogin={(u, remember) => {
             onLogin(u, remember);
             setShowAuthGate(false);
             // After login, we could automatically add it, but for now let's just close
@@ -3758,7 +3894,7 @@ const Dashboard: React.FC<{
   onCancelSubscription: () => void
 }> = ({ user, darkMode, onLogin, onUpdateTheme, onUpdateProfile, setActiveTab, onUpgrade, onCancelSubscription }) => {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [email, setEmail] = useState("");
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<{ item: any, type: 'routine' | 'analysis' | 'comparison' } | null>(null);
   const [checkInData, setCheckInData] = useState({
     acne: 5,
@@ -3771,28 +3907,10 @@ const Dashboard: React.FC<{
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempName, setTempName] = useState(user?.name || "");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
-  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem("glowguide_remembered_email"));
-
-  useEffect(() => {
-    const remembered = localStorage.getItem("glowguide_remembered_email");
-    if (remembered && !email) {
-      setEmail(remembered);
-    }
-  }, []);
-
-  const handleDashboardLogin = async () => {
-    if (rememberMe) {
-      localStorage.setItem("glowguide_remembered_email", email);
-    } else {
-      localStorage.removeItem("glowguide_remembered_email");
-    }
-    const u = await api.login(email || "demo@example.com");
-    onLogin(u, rememberMe);
-  };
 
   const refreshData = () => {
-    if (user) {
-      api.getDashboardData(user.id).then(setData);
+    if (user && user.id) {
+      api.getDashboardData(String(user.id)).then(setData);
     }
   };
 
@@ -3867,85 +3985,28 @@ const Dashboard: React.FC<{
         <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
           <ShieldCheck className="w-8 h-8 text-accent" />
         </div>
-        <h2 className="text-2xl font-bold text-theme-secondary mb-4">Start your skincare journey</h2>
+        <h2 className="text-2xl font-bold text-theme-secondary mb-4">Personalized Tracking</h2>
+        <p className="text-sm text-theme-secondary opacity-60 mb-8 leading-relaxed">
+          Create an account to track your routine history, skin progress, and get personalized insights.
+        </p>
         
-        <div className="mb-8 overflow-hidden rounded-2xl border border-theme-secondary/10 bg-theme-secondary/5">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-theme-secondary/10">
-                <th className="p-3 font-black text-theme-secondary opacity-40 uppercase tracking-widest">Feature</th>
-                <th className="p-3 font-black text-accent uppercase tracking-widest text-center">Free</th>
-                <th className="p-3 font-black text-accent uppercase tracking-widest text-center">Premium</th>
-              </tr>
-            </thead>
-            <tbody className="text-theme-secondary opacity-70">
-              <tr className="border-b border-theme-secondary/5">
-                <td className="p-3">Routine Saves</td>
-                <td className="p-3 text-center">1</td>
-                <td className="p-3 text-center font-bold">Unlimited</td>
-              </tr>
-              <tr className="border-b border-theme-secondary/5">
-                <td className="p-3">Daily Analysis</td>
-                <td className="p-3 text-center">3</td>
-                <td className="p-3 text-center font-bold">Unlimited</td>
-              </tr>
-              <tr className="border-b border-theme-secondary/5">
-                <td className="p-3">Skin Health Score</td>
-                <td className="p-3 text-center"><Check className="w-3 h-3 mx-auto text-emerald-500" /></td>
-                <td className="p-3 text-center"><Check className="w-3 h-3 mx-auto text-emerald-500" /></td>
-              </tr>
-              <tr>
-                <td className="p-3">Advanced Tracking</td>
-                <td className="p-3 text-center">—</td>
-                <td className="p-3 text-center"><Check className="w-3 h-3 mx-auto text-emerald-500" /></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="space-y-1 text-left">
-            <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Email Address</label>
-            <input 
-              type="email"
-              placeholder="Enter your email"
-              className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl outline-none focus:border-accent/50 transition-all"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </div>
+        <button 
+          onClick={() => setIsAuthOpen(true)}
+          className="w-full py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+        >
+          Get Started
+        </button>
 
-          <label className="flex items-center gap-2 cursor-pointer group text-left w-fit">
-            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-accent border-accent' : 'border-theme-secondary/20 group-hover:border-theme-secondary/40'}`}>
-              {rememberMe && <Check className="w-3 h-3 text-white" />}
-            </div>
-            <input 
-              type="checkbox" 
-              className="sr-only" 
-              checked={rememberMe}
-              onChange={() => setRememberMe(!rememberMe)}
-            />
-            <span className="text-xs font-medium text-theme-secondary opacity-60">Remember my email</span>
-          </label>
-
-          <div className="grid grid-cols-2 gap-4">
-            <button 
-              onClick={handleDashboardLogin}
-              className="py-4 bg-accent text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-accent/20"
-            >
-              Create Free Account
-            </button>
-            <button 
-              onClick={handleDashboardLogin}
-              className="py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all"
-            >
-              Sign In
-            </button>
-          </div>
-          <p className="text-[10px] text-theme-secondary opacity-40 mt-6">
-            Join thousands of users tracking their way to better skin.
-          </p>
-        </div>
+        <AuthGateModal
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLogin={(u, rem) => {
+            onLogin(u, rem);
+            setIsAuthOpen(false);
+          }}
+          title="Create Your Profile"
+          description="Build a lasting routine and track what actually works for your skin."
+        />
       </motion.div>
     );
   }
@@ -4371,6 +4432,23 @@ const Dashboard: React.FC<{
           />
         )}
       </AnimatePresence>
+
+      <div className="mt-20 pt-10 border-t border-theme-secondary/5 flex flex-col items-center gap-4 text-center">
+        <p className="text-[10px] font-black text-theme-secondary opacity-30 uppercase tracking-[0.2em]">Featured On</p>
+        <a 
+          href="https://www.producthunt.com/products/glowguide-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-glowguide-beta" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="transition-transform hover:scale-105 active:scale-95 duration-300"
+        >
+          <img 
+            alt="GlowGuide Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
+            width="250" 
+            height="54" 
+            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1126955&theme=light&t=1776542664167"
+          />
+        </a>
+      </div>
     </motion.div>
   );
 };
@@ -4412,12 +4490,48 @@ export default function App() {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("glowguide_theme");
       if (saved) return saved === "dark";
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return false; // Force day mode as default
     }
     return false;
   });
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (docSnap.exists()) {
+          const rawData = docSnap.data();
+          const userData = JSON.parse(JSON.stringify(rawData, (key, value) => {
+            if (value && typeof value === 'object' && value.seconds && value.nanoseconds) {
+              return new Date(value.seconds * 1000).toISOString();
+            }
+            return value;
+          })) as User;
+          setUser(userData);
+          localStorage.setItem("glowguide_user", JSON.stringify(userData));
+        } else {
+          // If Firestore is empty for some reason but Auth exists
+          const restoredUser: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || "",
+            token: firebaseUser.uid,
+            tier: 'free',
+            onboardingCompleted: false
+          };
+          setUser(restoredUser);
+        }
+      } else {
+        // Only clear if not in anonymous/mock session
+        const saved = localStorage.getItem("glowguide_user");
+        if (saved && saved !== "undefined") {
+          const parsed = safeJsonParse(saved);
+          if (parsed && parsed.id === -1) return; // Keep anon user
+        }
+        setUser(null);
+        localStorage.removeItem("glowguide_user");
+      }
+    });
+
     const checkApiKey = async () => {
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         const selected = await window.aistudio.hasSelectedApiKey();
@@ -4442,6 +4556,7 @@ export default function App() {
       localStorage.setItem("anon_client_id", id);
     }
     setAnonClientId(id);
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -4473,7 +4588,7 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    if (user && user.id > 0) {
+    if (user && user.id) {
       api.getDashboardData(user.id).then(setDashboardData);
     } else {
       setDashboardData(null);
@@ -4505,10 +4620,18 @@ export default function App() {
   };
 
   const syncUserStorage = (updatedUser: User) => {
+    // Sanitize any Firestore timestamps or objects before storage
+    const sanitized = JSON.parse(JSON.stringify(updatedUser, (key, value) => {
+      if (value && typeof value === 'object' && value.seconds && value.nanoseconds) {
+        return new Date(value.seconds * 1000).toISOString();
+      }
+      return value;
+    }));
+
     if (localStorage.getItem("glowguide_user")) {
-      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+      localStorage.setItem("glowguide_user", JSON.stringify(sanitized));
     } else if (sessionStorage.getItem("glowguide_user")) {
-      sessionStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+      sessionStorage.setItem("glowguide_user", JSON.stringify(sanitized));
     }
   };
 
@@ -4518,6 +4641,15 @@ export default function App() {
       const updatedUser = { ...user, ...fullProfile };
       setUser(updatedUser);
       syncUserStorage(updatedUser);
+      
+      try {
+        if (user.token) {
+          await updateDoc(doc(db, "users", user.token), fullProfile);
+        }
+      } catch (e) {
+        console.error("Failed to update onboarding in Firestore:", e);
+      }
+      
       await api.updateProfile(user.id, fullProfile);
       setIsOnboardingOpen(false);
     }
@@ -4553,11 +4685,16 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem("glowguide_user");
-    sessionStorage.removeItem("glowguide_user");
-    setActiveTab("routine");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      localStorage.removeItem("glowguide_user");
+      sessionStorage.removeItem("glowguide_user");
+      setActiveTab("routine");
+    } catch (e) {
+      console.error("Logout error", e);
+    }
   };
 
   const handleStartTrial = async () => {
