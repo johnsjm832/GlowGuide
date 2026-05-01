@@ -277,4 +277,19 @@ export const api = {
       return { success: false, error: e.message };
     }
   },
+
+  async fetchProductByBarcode(barcode: string): Promise<{ productName: string; ingredients: string }> {
+    const response = await fetch(`https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`);
+    const data = await response.json();
+    
+    if (data.status !== 1) {
+      throw new Error("Product not found in Open Beauty Facts database.");
+    }
+
+    const product = data.product;
+    return {
+      productName: product.product_name || "Unknown Product",
+      ingredients: product.ingredients_text || ""
+    };
+  },
 };

@@ -13,10 +13,11 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard, Search, MessageSquare } from "lucide-react";
+import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard, Search, MessageSquare, Loader2, Scan } from "lucide-react";
 import { api } from "./services/api";
 import { geminiService } from "./services/geminiService";
 import { NotificationCenter } from "./components/NotificationCenter";
+import Scanner from "./components/Scanner";
 import { validateSkincareInput, validateDisplayName } from "./utils/validation";
 import { 
   createUserWithEmailAndPassword, 
@@ -2611,6 +2612,8 @@ const IngredientAnalyzer: React.FC<{
   const [isAddingToRoutine, setIsAddingToRoutine] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [vagueNotice, setVagueNotice] = useState<string | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isFetchingBarcode, setIsFetchingBarcode] = useState(false);
 
   useEffect(() => {
     const fetchUsage = async () => {
@@ -2619,6 +2622,41 @@ const IngredientAnalyzer: React.FC<{
     };
     fetchUsage();
   }, [anonClientId, user]);
+
+  const handleBarcodeScan = async (barcode: string) => {
+    setIsScannerOpen(false);
+    setIsFetchingBarcode(true);
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const product = await api.fetchProductByBarcode(barcode);
+      setFormData(product);
+      
+      if (!product.ingredients) {
+        setError("Product found, but ingredients are missing from the database. Please enter them manually below.");
+        setLoading(false);
+        setIsFetchingBarcode(false);
+        return;
+      }
+
+      // Automatically trigger analysis once barcode data is fetched
+      const data = await geminiService.analyzeIngredients(product);
+      await api.logUsage(anonClientId, user?.id || null);
+      
+      const updatedUsage = await api.checkUsage(anonClientId, user?.id || null);
+      setUsageCount(updatedUsage.count ?? 0);
+      
+      setResult(data);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Failed to fetch barcode details.");
+    } finally {
+      setLoading(false);
+      setIsFetchingBarcode(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2937,17 +2975,55 @@ const IngredientAnalyzer: React.FC<{
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-8 px-6">
-      <div className="mb-12 flex justify-between items-start">
-        <div>
-          <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Ingredient Analyzer</h2>
-          <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Paste an ingredient list to understand skin compatibility and routine fit.</p>
-        </div>
+    <>
+      <AnimatePresence>
+        {isScannerOpen && (
+          <Scanner 
+            onScan={handleBarcodeScan}
+            onClose={() => setIsScannerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-8 px-6">
+        <div className="mb-12 flex justify-between items-start">
+          <div>
+            <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Ingredient Analyzer</h2>
+            <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Decode the science behind your skincare products.</p>
+          </div>
         <div className="flex flex-col items-end opacity-60 hover:opacity-100 transition-opacity shrink-0">
           <span className="text-[10px] font-bold text-theme-secondary opacity-50 uppercase tracking-widest mb-1">Daily Limit</span>
           <div className="text-sm font-bold text-theme-secondary bg-theme-primary px-3 py-1 rounded-xl border-2 border-theme-secondary/10">
             {usageCount} <span className="opacity-40">/ {user ? (user.tier === 'premium' || EARLY_ACCESS_MODE ? '∞' : '3') : '1'}</span>
           </div>
+        </div>
+      </div>
+
+      <div className="mb-12">
+        <button
+          onClick={() => setIsScannerOpen(true)}
+          disabled={isFetchingBarcode}
+          className="w-full py-8 bg-accent text-white rounded-[2rem] font-black text-xl hover:opacity-90 transition-all flex flex-col items-center justify-center gap-2 shadow-2xl shadow-accent/20 border-4 border-white/10"
+        >
+          {isFetchingBarcode ? (
+            <>
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="text-sm opacity-80">Fetching product details...</span>
+            </>
+          ) : (
+            <>
+              <div className="bg-white/20 p-4 rounded-2xl mb-2">
+                <Scan className="w-8 h-8" />
+              </div>
+              <span>Scan Barcode</span>
+              <span className="text-xs font-medium opacity-60">The fastest way to analyze</span>
+            </>
+          )}
+        </button>
+
+        <div className="flex items-center gap-4 my-8">
+          <div className="h-px flex-1 bg-theme-secondary/10"></div>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30">OR MANUAL INPUT</span>
+          <div className="h-px flex-1 bg-theme-secondary/10"></div>
         </div>
       </div>
 
@@ -3024,6 +3100,7 @@ const IngredientAnalyzer: React.FC<{
         </button>
       </form>
     </motion.div>
+    </>
   );
 };
 

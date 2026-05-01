@@ -1,5 +1,5 @@
 {
   "name": "GlowGuide",
   "description": "Smarter skincare routines. A neutral, privacy-first skincare assistant for routine generation and ingredient analysis.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera"]
 }
