@@ -16,10 +16,31 @@
   --accent: #10b981;
 }
 
+/* Safe area support for notched phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 .dark {
   --theme-primary: #000000;
   --theme-secondary: #ffffff;
-  --accent: #10b981;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Improve touch targets for mobile */
+  button, a {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  input, select, textarea {
+    @apply text-base; /* Prevent auto-zoom on iOS */
+  }
 }
 
 @layer utilities {

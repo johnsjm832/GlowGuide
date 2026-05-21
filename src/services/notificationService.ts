@@ -30,7 +30,7 @@ export const notificationService = {
       const isMorning = hour >= 6 && hour <= 10;
       const isNight = hour >= 20 && hour <= 23;
       
-      const lastRoutineDate = dashboard.lastRoutine?.created_at.split('T')[0];
+      const lastRoutineDate = dashboard.lastRoutine?.created_at?.split('T')[0];
       const alreadyDoneToday = lastRoutineDate === todayStr;
 
       if (isMorning && !alreadyDoneToday) {
@@ -60,7 +60,7 @@ export const notificationService = {
 
     // 2. Skin Tracking Nudges
     if (prefs.skinTrackingNudges && notifications.length < NOTIFICATION_LIMIT_PER_DAY) {
-      const lastCheckInDate = dashboard.lastCheckIn?.created_at.split('T')[0];
+      const lastCheckInDate = dashboard.lastCheckIn?.created_at?.split('T')[0];
       const checkedInToday = lastCheckInDate === todayStr;
 
       if (!checkedInToday && hour >= 12) { // Only nudge after noon

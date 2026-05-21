@@ -13,7 +13,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard, Search, MessageSquare, ScanBarcode, Barcode, RefreshCw } from "lucide-react";
+import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard, Search, MessageSquare, ScanBarcode, Barcode, RefreshCw, BarChart2 } from "lucide-react";
 import { api } from "./services/api";
 import { geminiService } from "./services/geminiService";
 import { Scanner } from "./components/Scanner";
@@ -24,7 +24,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   onAuthStateChanged,
-  signOut
+  signOut,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { 
   doc, 
@@ -172,6 +173,45 @@ const ConversionPrompt = ({ onUpgrade }: { onUpgrade: () => void }) => (
   </motion.div>
 );
 
+const BottomNav = ({ activeTab, setActiveTab, user }: { activeTab: string, setActiveTab: (t: string) => void, user: User | null }) => {
+  const navItems = [
+    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+    { id: 'routine', label: 'Routine', icon: FlaskConical },
+    { id: 'analyze', label: 'Analyze', icon: Search },
+    { id: 'compare', label: 'Compare', icon: GitCompare },
+    { id: 'routine-builder', label: 'Builder', icon: Palette },
+  ];
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-theme-primary/80 backdrop-blur-xl border-t border-theme-secondary/10 z-[60] pb-safe">
+      <div className="flex justify-around items-center h-16 px-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[64px] transition-all ${
+                isActive ? 'text-accent' : 'text-theme-secondary/40'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : 'scale-100'} transition-transform`} />
+              <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+              {isActive && (
+                <motion.div 
+                  layoutId="bottom-nav-active"
+                  className="absolute bottom-1 w-1 h-1 bg-accent rounded-full"
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const Navbar = ({ 
   activeTab, 
   setActiveTab, 
@@ -196,24 +236,24 @@ const Navbar = ({
   <div className="z-50 w-full">
     {/* Tier 1: Branding & Actions (Scrolls away) */}
     <div className="bg-theme-primary border-b border-theme-secondary/5">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+      <div className="max-w-6xl mx-auto px-4 h-16 sm:h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => setActiveTab(user ? "dashboard" : "routine")}>
-          <div className="w-7 h-7 bg-accent rounded-lg flex items-center justify-center shadow-sm shadow-accent/20">
-            <Sparkles className="text-white w-4 h-4" />
+          <div className="w-8 h-8 sm:w-7 sm:h-7 bg-accent rounded-xl sm:rounded-lg flex items-center justify-center shadow-sm shadow-accent/20">
+            <Sparkles className="text-white w-4.5 h-4.5 sm:w-4 sm:h-4" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-theme-secondary tracking-tight text-base leading-none">GlowGuide</span>
+              <span className="font-bold text-theme-secondary tracking-tight text-lg sm:text-base leading-none">GlowGuide</span>
               {user?.tier === 'premium' ? (
                 <span className="bg-accent text-white text-[7px] font-black px-1 py-0.5 rounded-md uppercase tracking-widest">Pro</span>
               ) : EARLY_ACCESS_MODE ? (
-                <span className="bg-emerald-500 text-white text-[7px] font-black px-1 py-0.5 rounded-md uppercase tracking-widest">Early Access</span>
+                <span className="bg-emerald-500 text-white text-[7px] font-black px-1 py-0.5 rounded-md uppercase tracking-widest hidden sm:inline">Early Access</span>
               ) : null}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <NotificationCenter 
             user={user} 
             dashboard={dashboard} 
@@ -222,44 +262,44 @@ const Navbar = ({
           />
           <button 
             onClick={toggleDarkMode}
-            className="p-2 text-theme-secondary/60 hover:text-theme-secondary transition-colors"
+            className="p-3 sm:p-2 text-theme-secondary/60 hover:text-theme-secondary transition-colors"
             aria-label="Toggle theme"
           >
-            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {darkMode ? <Sun className="w-5 h-5 sm:w-4 sm:h-4" /> : <Moon className="w-5 h-5 sm:w-4 sm:h-4" />}
           </button>
           
-          <div className="h-4 w-px bg-theme-secondary/10 mx-1" />
+          <div className="h-4 w-px bg-theme-secondary/10 mx-1 hidden sm:block" />
 
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {user.tier !== 'premium' && (
                 <button 
                   onClick={onUpgrade}
-                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-full text-[10px] font-bold hover:bg-accent/20 transition-all"
+                  className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-full text-[10px] font-bold hover:bg-accent/20 transition-all"
                 >
                   <Award className="w-3 h-3" />
                   {EARLY_ACCESS_MODE ? 'Early Access' : 'Upgrade'}
                 </button>
               )}
-              <button onClick={onLogout} className="flex items-center gap-2 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary">
-                <LogOut className="w-3.5 h-3.5" />
+              <button onClick={onLogout} className="flex items-center gap-2 p-3 sm:p-0 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary transition-colors">
+                <LogOut className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
                 <span className="hidden sm:inline">Sign Out</span>
               </button>
             </div>
           ) : (
-            <button onClick={() => setActiveTab("dashboard")} className="flex items-center gap-2 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary">
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
+            <button onClick={() => setActiveTab("dashboard")} className="flex items-center gap-2 p-3 sm:p-0 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary transition-colors">
+              <LogIn className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">Sign In</span>
             </button>
           )}
         </div>
       </div>
     </div>
 
-    {/* Tier 2: Feature Navigation (Sticky for maneuvering) */}
-    <nav className="sticky top-0 bg-theme-primary/90 backdrop-blur-md border-b border-theme-secondary/10 z-50 w-full">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-6 sm:gap-8 min-w-max">
+    {/* Tier 2: Feature Navigation (Hidden on mobile, uses BottomNav instead) */}
+    <nav className="hidden md:block sticky top-0 bg-theme-primary/90 backdrop-blur-md border-b border-theme-secondary/10 z-50 w-full">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center">
+        <div className="flex items-center gap-8">
           <button 
             onClick={() => setActiveTab("routine")}
             className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "routine" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
@@ -473,6 +513,29 @@ const AuthGateModal: React.FC<{
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem("glowguide_remembered_email"));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccessMessage("Password reset email sent! Please check your inbox.");
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        setError("We couldn't find an account with that email address.");
+      } else {
+        setError(err.message || "Failed to send reset email.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAction = async (isSignUp: boolean) => {
     if (!email || !password) {
@@ -566,6 +629,13 @@ const AuthGateModal: React.FC<{
           </div>
         )}
 
+        {successMessage && (
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 text-emerald-500 text-xs font-bold animate-in fade-in slide-in-from-top-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            {successMessage}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 mb-4 text-left">
           <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10">
             <h3 className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">Free Account</h3>
@@ -631,7 +701,17 @@ const AuthGateModal: React.FC<{
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Password</label>
+            <div className="flex justify-between items-end">
+              <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Password</label>
+              <button 
+                onClick={handleForgotPassword}
+                type="button"
+                className="text-[10px] font-black text-accent uppercase tracking-widest hover:opacity-100 opacity-60 transition-all mb-1"
+                disabled={isLoading}
+              >
+                Forgot Password?
+              </button>
+            </div>
             <input 
               type="password"
               placeholder="••••••••"
@@ -1313,7 +1393,28 @@ const RoutineBuilder: React.FC<{
   const [error, setError] = useState<string | null>(null);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isFetchingBarcode, setIsFetchingBarcode] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
+
+  const handleScanSuccess = async (barcode: string) => {
+    setIsScannerOpen(false);
+    setIsFetchingBarcode(true);
+    try {
+      const product = await fetchProductByBarcode(barcode);
+      if (product) {
+        setNewProduct({
+          ...newProduct,
+          name: `${product.brand ? product.brand + ' ' : ''}${product.name}`,
+          ingredients: product.ingredientsText || ""
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetchingBarcode(false);
+    }
+  };
 
   const handleShare = async () => {
     if (!shareCardRef.current) return;
@@ -1415,22 +1516,31 @@ const RoutineBuilder: React.FC<{
         {title}
       </h3>
       <div className="grid gap-4">
-        {products.filter(p => p.time === time || p.time === "BOTH").map(p => (
-          <div key={p.id} className="bg-theme-primary border-2 border-theme-secondary/20 p-4 rounded-2xl flex justify-between items-center group">
-            <div>
-              <h4 className="font-bold text-theme-secondary">{p.name}</h4>
-              <p className="text-xs text-theme-secondary opacity-50 uppercase tracking-wider font-bold">
-                {p.frequency} {p.customDays?.length ? `(${p.customDays.join(', ')})` : ''}
-              </p>
-            </div>
-            <button 
-              onClick={() => removeProduct(p.id)}
-              className="p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 rounded-lg"
+        <AnimatePresence initial={false}>
+          {products.filter(p => p.time === time || p.time === "BOTH").map(p => (
+            <motion.div 
+              key={p.id}
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="bg-theme-primary border-2 border-theme-secondary/20 p-4 rounded-2xl flex justify-between items-center group overflow-hidden"
             >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
+              <div>
+                <h4 className="font-bold text-theme-secondary">{p.name}</h4>
+                <p className="text-xs text-theme-secondary opacity-50 uppercase tracking-wider font-bold">
+                  {p.frequency} {p.customDays?.length ? `(${p.customDays.join(', ')})` : ''}
+                </p>
+              </div>
+              <button 
+                onClick={() => removeProduct(p.id)}
+                className="p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 rounded-lg"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
         {products.filter(p => p.time === time || p.time === "BOTH").length === 0 && (
           <div className="border-2 border-dashed border-theme-secondary/10 p-8 rounded-2xl text-center text-theme-secondary opacity-30">
             No {time} products added.
@@ -1651,7 +1761,16 @@ const RoutineBuilder: React.FC<{
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               className="relative w-full max-w-lg bg-theme-primary border-2 border-theme-secondary/30 rounded-3xl p-8 shadow-2xl"
             >
-              <h3 className="text-2xl font-bold text-theme-secondary mb-6">Add Product</h3>
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-2xl font-bold text-theme-secondary">Add Product</h3>
+                <button 
+                  onClick={() => setIsScannerOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest border border-accent/20 hover:bg-accent/20 transition-all"
+                >
+                  <ScanBarcode className="w-3 h-3" />
+                  Scan Barcode
+                </button>
+              </div>
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-theme-secondary opacity-50 uppercase tracking-wider">Product Name</label>
@@ -1700,15 +1819,22 @@ const RoutineBuilder: React.FC<{
                 </div>
                 <button 
                   onClick={addProduct}
-                  className="w-full py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all mt-4"
+                  className="w-full py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/5 transition-all mt-4 flex items-center justify-center gap-2"
                 >
-                  Add to Routine
+                  {isFetchingBarcode ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Add to Routine"}
                 </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {isScannerOpen && (
+        <Scanner 
+          onScanSuccess={handleScanSuccess} 
+          onClose={() => setIsScannerOpen(false)} 
+        />
+      )}
 
       <AuthGateModal 
         isOpen={showAuthGate}
@@ -1753,6 +1879,9 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
   const [result, setResult] = useState<ComparisonResponse | null>(null);
   const [userRoutine, setUserRoutine] = useState<RoutineProduct[]>([]);
   const [showSelector, setShowSelector] = useState<{ active: boolean, target: 'A' | 'B' }>({ active: false, target: 'A' });
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerTarget, setScannerTarget] = useState<'A' | 'B'>('A');
+  const [isFetchingBarcode, setIsFetchingBarcode] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -1767,6 +1896,26 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
       setProductB({ name: product.name, ingredients: product.ingredients || "" });
     }
     setShowSelector({ ...showSelector, active: false });
+  };
+
+  const handleScanSuccess = async (barcode: string) => {
+    setIsScannerOpen(false);
+    setIsFetchingBarcode(true);
+    try {
+      const product = await fetchProductByBarcode(barcode);
+      if (product) {
+        const newData = {
+          name: `${product.brand ? product.brand + ' ' : ''}${product.name}`,
+          ingredients: product.ingredientsText || ""
+        };
+        if (scannerTarget === 'A') setProductA(newData);
+        else setProductB(newData);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetchingBarcode(false);
+    }
   };
 
   const handleCompare = async () => {
@@ -1843,14 +1992,26 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
               <div className="flex items-center gap-2 text-theme-secondary opacity-50 font-bold uppercase text-[10px] tracking-widest">
                 <div className="w-2 h-2 rounded-full bg-accent" /> Product A
               </div>
-              {user && userRoutine.length > 0 && (
+              <div className="flex gap-2">
                 <button 
-                  onClick={() => setShowSelector({ active: true, target: 'A' })}
-                  className="text-[10px] font-bold text-accent hover:opacity-100 border-2 border-accent/20 px-3 py-1 rounded-xl transition-all"
+                  onClick={() => {
+                    setScannerTarget('A');
+                    setIsScannerOpen(true);
+                  }}
+                  className="p-1.5 bg-accent/10 text-accent rounded-lg border border-accent/20 hover:bg-accent/20 transition-all"
+                  title="Scan Barcode"
                 >
-                  Select from Routine
+                  <ScanBarcode className="w-3.5 h-3.5" />
                 </button>
-              )}
+                {user && userRoutine.length > 0 && (
+                  <button 
+                    onClick={() => setShowSelector({ active: true, target: 'A' })}
+                    className="text-[10px] font-bold text-accent hover:opacity-100 border-2 border-accent/20 px-3 py-1 rounded-xl transition-all"
+                  >
+                    Select from Routine
+                  </button>
+                )}
+              </div>
             </div>
             <input 
               type="text"
@@ -1873,14 +2034,26 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
               <div className="flex items-center gap-2 text-theme-secondary opacity-50 font-bold uppercase text-[10px] tracking-widest">
                 <div className="w-2 h-2 rounded-full bg-theme-secondary/30" /> Product B
               </div>
-              {user && userRoutine.length > 0 && (
+              <div className="flex gap-2">
                 <button 
-                  onClick={() => setShowSelector({ active: true, target: 'B' })}
-                  className="text-[10px] font-bold text-accent hover:opacity-100 border-2 border-accent/20 px-3 py-1 rounded-xl transition-all"
+                  onClick={() => {
+                    setScannerTarget('B');
+                    setIsScannerOpen(true);
+                  }}
+                  className="p-1.5 bg-theme-secondary/10 text-theme-secondary rounded-lg border border-theme-secondary/20 hover:bg-theme-secondary/20 transition-all"
+                  title="Scan Barcode"
                 >
-                  Select from Routine
+                  <ScanBarcode className="w-3.5 h-3.5" />
                 </button>
-              )}
+                {user && userRoutine.length > 0 && (
+                  <button 
+                    onClick={() => setShowSelector({ active: true, target: 'B' })}
+                    className="text-[10px] font-bold text-accent hover:opacity-100 border-2 border-accent/20 px-3 py-1 rounded-xl transition-all"
+                  >
+                    Select from Routine
+                  </button>
+                )}
+              </div>
             </div>
             <input 
               type="text"
@@ -1913,6 +2086,13 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
         <div className="mb-8 p-4 bg-red-500/5 border border-red-500/20 rounded-2xl text-red-500 text-sm text-center">
           {error}
         </div>
+      )}
+
+      {isScannerOpen && (
+        <Scanner 
+          onScanSuccess={handleScanSuccess} 
+          onClose={() => setIsScannerOpen(false)} 
+        />
       )}
 
       {result && (
@@ -2132,36 +2312,36 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = 
 );
 
 const RoutineScoreBreakdown = ({ safety, compatibility, balance }: { safety: number, compatibility: number, balance: number }) => (
-  <div className="grid grid-cols-3 gap-4 mb-8">
-    <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group">
+  <div className="grid grid-cols-2 xs:grid-cols-3 gap-3 sm:gap-4 mb-8">
+    <div className="p-3 sm:p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group">
       <div className="flex items-center gap-1 mb-1">
-        <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">Safety</span>
-        <Info className="w-3 h-3 opacity-30" />
+        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">Safety</span>
+        <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-30" />
       </div>
-      <div className="text-2xl font-black text-theme-secondary">{safety}</div>
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
+      <div className="text-xl sm:text-2xl font-black text-theme-secondary">{safety}</div>
+      <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
         Measures the lack of harsh ingredient combinations and overall formulation safety.
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-theme-secondary"></div>
       </div>
     </div>
-    <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group">
+    <div className="p-3 sm:p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group">
       <div className="flex items-center gap-1 mb-1">
-        <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">Compatibility</span>
-        <Info className="w-3 h-3 opacity-30" />
+        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">Compatibility</span>
+        <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-30" />
       </div>
-      <div className="text-2xl font-black text-theme-secondary">{compatibility}</div>
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
+      <div className="text-xl sm:text-2xl font-black text-theme-secondary">{compatibility}</div>
+      <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
         How well your products work together without neutralizing each other or causing irritation.
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-theme-secondary"></div>
       </div>
     </div>
-    <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group">
+    <div className="p-3 sm:p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group col-span-2 xs:col-span-1">
       <div className="flex items-center gap-1 mb-1">
-        <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">Balance</span>
-        <Info className="w-3 h-3 opacity-30" />
+        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">Balance</span>
+        <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-30" />
       </div>
-      <div className="text-2xl font-black text-theme-secondary">{balance}</div>
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
+      <div className="text-xl sm:text-2xl font-black text-theme-secondary">{balance}</div>
+      <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
         The ratio of active treatments to hydrating/soothing barrier support.
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-theme-secondary"></div>
       </div>
@@ -2595,6 +2775,120 @@ const RoutineGenerator: React.FC<{
   );
 };
 
+const SkinTypeGuide = () => {
+  const [activeSkinType, setActiveSkinType] = useState<string>("oily");
+
+  const guideData = {
+    oily: {
+      title: "Oily & Acne-Prone",
+      description: "Focus on balancing sebum production and keeping pores clear.",
+      good: ["Salicylic Acid (BHA)", "Niacinamide", "Zinc PCA", "Tea Tree Oil", "Kaolin Clay", "Retinoids"],
+      bad: ["Cocoa Butter", "Coconut Oil", "Lanolin", "Heavy Silicones", "Isopropyl Myristate"]
+    },
+    dry: {
+      title: "Dry & Dehydrated",
+      description: "Prioritize moisture retention and barrier repair.",
+      good: ["Hyaluronic Acid", "Ceramides", "Glycerin", "Squalane", "Shea Butter", "Panthenol"],
+      bad: ["Denatured Alcohol", "Strong Fragrances", "Sodium Lauryl Sulfate (SLS)", "High BHA concentrations"]
+    },
+    sensitive: {
+      title: "Sensitive & Reactive",
+      description: "Seek calming, anti-inflammatory ingredients and avoid irritants.",
+      good: ["Centella Asiatica (Cica)", "Allantoin", "Colloidal Oatmeal", "Bisabolol", "Aloe Vera", "Madecassoside"],
+      bad: ["Synthetic Fragrances", "Essential Oils", "Drying Alcohols", "Witch Hazel", "Harsh Physical Scrubs"]
+    },
+    combination: {
+      title: "Combination Skin",
+      description: "Multiple needs: hydration for dry areas and oil control for the T-zone.",
+      good: ["Hyaluronic Acid", "Niacinamide", "Vitamin C", "Peptides", "Lactic Acid"],
+      bad: ["Extremely heavy creams", "Very drying alcohol-based toners"]
+    }
+  };
+
+  const current = guideData[activeSkinType as keyof typeof guideData];
+
+  return (
+    <div className="mt-16 p-8 bg-theme-secondary/5 rounded-[40px] border border-theme-secondary/10 overflow-hidden relative">
+      {/* Decorative background element */}
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
+      
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">Knowledge Base</span>
+          </div>
+          <h4 className="text-3xl font-bold text-theme-secondary mb-2 tracking-tight">Skin Compatibility Guide</h4>
+          <p className="text-sm text-theme-secondary opacity-60 max-w-sm">Learn what ingredients work best for your unique skin profile.</p>
+        </div>
+        <div className="flex p-1 bg-theme-primary/50 backdrop-blur-sm rounded-2xl border border-theme-secondary/10">
+          {Object.keys(guideData).map((type) => (
+            <button
+              key={type}
+              onClick={() => setActiveSkinType(type)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSkinType === type ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-theme-secondary opacity-40 hover:opacity-100'}`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <motion.div
+        key={activeSkinType}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid md:grid-cols-2 gap-10 relative z-10"
+      >
+        <div className="space-y-8">
+          <div className="p-8 bg-theme-primary rounded-3xl border border-theme-secondary/5 shadow-sm">
+            <h5 className="font-bold text-theme-secondary text-lg mb-3 tracking-tight">{current.title}</h5>
+            <p className="text-base text-theme-secondary opacity-70 leading-relaxed font-medium">{current.description}</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 ml-1">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+              <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Ideal Ingredients</div>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {current.good.map((ing) => (
+                <span key={ing} className="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[11px] font-bold rounded-2xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                  {ing}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 ml-1">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+              <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Avoid / Use Caution</div>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {current.bad.map((ing) => (
+                <span key={ing} className="px-4 py-2 bg-rose-500/10 text-rose-500 text-[11px] font-bold rounded-2xl border border-rose-500/20 hover:bg-rose-500/20 transition-colors">
+                  {ing}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-6 bg-theme-secondary/5 rounded-3xl border border-theme-secondary/5">
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 text-theme-secondary opacity-40 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-theme-secondary opacity-50 leading-relaxed font-medium">
+                Note: Skin reactions are highly individual. These are general recommendations based on dermatological consensus. Always patch test new products for 24-48 hours before full application.
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const IngredientAnalyzer: React.FC<{ 
   user: User | null, 
   anonClientId: string | null,
@@ -2616,6 +2910,7 @@ const IngredientAnalyzer: React.FC<{
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isFetchingBarcode, setIsFetchingBarcode] = useState(false);
+  const [showManualFields, setShowManualFields] = useState(false);
 
   useEffect(() => {
     const fetchUsage = async () => {
@@ -2651,7 +2946,10 @@ const IngredientAnalyzer: React.FC<{
         return;
       }
 
-      const data = await geminiService.analyzeIngredients(currentData);
+      const data = await geminiService.analyzeIngredients({
+        ...currentData,
+        skinType: user?.skinType
+      });
       await api.logUsage(anonClientId, user?.id || null);
       const updatedUsage = await api.checkUsage(anonClientId, user?.id || null);
       setUsageCount(updatedUsage.count ?? 0);
@@ -2709,8 +3007,10 @@ const IngredientAnalyzer: React.FC<{
         };
         setFormData(newFormData);
         if (product.ingredientsText) {
+          setShowManualFields(true);
           triggerAnalysis(newFormData);
         } else {
+          setShowManualFields(true);
           setError("Product found, but no ingredients text was available. Please enter them manually if you have them.");
         }
       } else {
@@ -3076,25 +3376,58 @@ const IngredientAnalyzer: React.FC<{
           />
         )}
 
-        <div className="space-y-3">
-          <label className="text-sm font-bold text-theme-secondary opacity-60 uppercase tracking-widest">Product Name</label>
-          <input 
-            type="text"
-            placeholder="e.g. Gentle Hydrating Cleanser"
-            className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl focus:border-accent outline-none transition-all"
-            value={formData.productName}
-            onChange={e => setFormData({...formData, productName: e.target.value})}
-          />
-        </div>
+        <div className="space-y-6">
+          <button 
+            type="button"
+            onClick={() => setShowManualFields(!showManualFields)}
+            className="flex items-center justify-between w-full p-4 bg-theme-secondary/5 border border-theme-secondary/10 rounded-2xl hover:bg-theme-secondary/10 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-theme-secondary/10 rounded-xl flex items-center justify-center">
+                <Beaker className="w-4 h-4 text-theme-secondary opacity-60" />
+              </div>
+              <div className="text-left">
+                <div className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest leading-none">Optional</div>
+                <div className="text-sm font-bold text-theme-secondary">Manual Ingredient Input</div>
+              </div>
+            </div>
+            <div className={`p-2 bg-theme-secondary/5 rounded-lg transition-transform duration-300 ${showManualFields ? 'rotate-180' : ''}`}>
+              <ChevronDown className="w-4 h-4 text-theme-secondary opacity-40" />
+            </div>
+          </button>
 
-        <div className="space-y-3">
-          <label className="text-sm font-bold text-theme-secondary opacity-60 uppercase tracking-widest">Ingredient List</label>
-          <textarea 
-            placeholder="Paste ingredients here..."
-            className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl focus:border-accent outline-none min-h-[200px] transition-all leading-relaxed"
-            value={formData.ingredients}
-            onChange={e => setFormData({...formData, ingredients: e.target.value})}
-          />
+          <AnimatePresence>
+            {showManualFields && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                animate={{ height: "auto", opacity: 1, marginTop: 24 }}
+                exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                transition={{ duration: 0.3, ease: "circOut" }}
+                className="overflow-hidden space-y-8"
+              >
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-theme-secondary opacity-60 uppercase tracking-widest ml-1">Product Name</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Gentle Hydrating Cleanser"
+                    className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl focus:border-accent outline-none transition-all shadow-sm"
+                    value={formData.productName}
+                    onChange={e => setFormData({...formData, productName: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-theme-secondary opacity-60 uppercase tracking-widest ml-1">Ingredient List</label>
+                  <textarea 
+                    placeholder="Paste ingredients here..."
+                    className="w-full p-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl focus:border-accent outline-none min-h-[200px] transition-all leading-relaxed shadow-sm"
+                    value={formData.ingredients}
+                    onChange={e => setFormData({...formData, ingredients: e.target.value})}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <button 
@@ -3104,6 +3437,8 @@ const IngredientAnalyzer: React.FC<{
           {loading ? "Analyzing..." : "Analyze Ingredients"}
         </button>
       </form>
+
+      <SkinTypeGuide />
     </motion.div>
   );
 };
@@ -3112,8 +3447,11 @@ const THEMES = [
   { id: 'glow', name: 'Glow', accent: '#10b981' },
   { id: 'calm', name: 'Calm', accent: '#6366f1' },
   { id: 'clinical', name: 'Clinical', accent: '#0ea5e9' },
-  { id: 'midnight', name: 'Midnight', accent: '#64748b' },
+  { id: 'midnight', name: 'Midnight', accent: '#334155' },
   { id: 'rose', name: 'Rose', accent: '#f43f5e' },
+  { id: 'lavender', name: 'Lavender', accent: '#a855f7' },
+  { id: 'amber', name: 'Amber', accent: '#f59e0b' },
+  { id: 'sunset', name: 'Sunset', accent: '#f97316' },
 ];
 
 const NotificationSettings = ({ user, onUpdate }: { user: User, onUpdate: (u: User) => void }) => {
@@ -3411,6 +3749,54 @@ const SavedComparisons: React.FC<{ user: User, onViewDetail: (item: any) => void
           </div>
         </div>
       ))}
+    </div>
+  );
+};
+
+const SkinCompatibilityGuide = () => {
+  const categories = [
+    {
+      name: "Retinoids",
+      compatible: ["Niacinamide", "Hyaluronic Acid", "Ceramides"],
+      conflicts: ["Vitamin C", "AHA/BHA Acids", "Benzoyl Peroxide"],
+      tips: "Use Retinoids at night only. Pair with ceramides to rebuild the skin barrier."
+    },
+    {
+      name: "Vitamin C",
+      compatible: ["Vitamin E", "Ferulic Acid", "Sunscreen"],
+      conflicts: ["Retinol", "AHA/BHA Acids", "Niacinamide (pH dependent)"],
+      tips: "Best used in the morning under sunscreen to double up on antioxidant protection."
+    },
+    {
+      name: "AHA/BHA Acids",
+      compatible: ["Hyaluronic Acid", "Hydrating Serums"],
+      conflicts: ["Retinol", "Vitamin C", "Physical Exfoliants"],
+      tips: "Avoid using multiple acids in the same routine stage. Over-exfoliation leads to sensitivity."
+    }
+  ];
+
+  return (
+    <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
+      <div className="grid md:grid-cols-3 gap-6">
+        {categories.map((cat, i) => (
+          <div key={i} className="space-y-4">
+            <h4 className="text-sm font-black text-accent uppercase tracking-widest flex items-center gap-2">
+              <Zap className="w-4 h-4" /> {cat.name}
+            </h4>
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-1">Pairs Well With</span>
+                <p className="text-[11px] font-medium text-theme-secondary/70">{cat.compatible.join(", ")}</p>
+              </div>
+              <div className="p-3 bg-rose-500/5 border border-rose-500/20 rounded-xl">
+                <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest block mb-1">Avoid Mixing With</span>
+                <p className="text-[11px] font-medium text-theme-secondary/70">{cat.conflicts.join(", ")}</p>
+              </div>
+              <p className="text-[10px] text-theme-secondary opacity-40 italic leading-relaxed">{cat.tips}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -3988,6 +4374,7 @@ const Dashboard: React.FC<{
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempName, setTempName] = useState(user?.name || "");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [showCompatibility, setShowCompatibility] = useState(false);
 
   const refreshData = () => {
     if (user && user.id) {
@@ -4279,164 +4666,239 @@ const Dashboard: React.FC<{
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-        <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl">
-          <div className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Total Scans</div>
-          <div className="text-3xl font-black text-accent">{data?.scansCount || 0}</div>
-        </div>
-        <CompactSkinHealthScore score={data?.healthScore || 0} trend={data?.healthScoreTrend || 0} />
-        <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl">
-          <div className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Check-in Streak</div>
-          <div className="text-3xl font-black text-accent">{data?.streak || 0}<span className="text-sm opacity-30"> days</span></div>
-        </div>
-        <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl">
-          <div className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Saved Items</div>
-          <div className="text-3xl font-black text-accent">{(data?.savedRoutines.length || 0) + (data?.savedAnalyses.length || 0) + (data?.savedComparisons.length || 0)}</div>
-        </div>
-      </div>
-
       <div className="space-y-16">
-        {/* Section 1: Daily Essentials (Free) */}
-        <section>
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center">
-              <Sun className="w-5 h-5 text-accent" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
+          <section className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-bold text-theme-secondary">Skin Performance</h3>
+                <p className="text-xs text-theme-secondary opacity-40 uppercase tracking-widest mt-1">Health Score Trend</p>
+              </div>
+              <div className="bg-theme-secondary/5 p-2 rounded-xl">
+                <Activity className="w-5 h-5 text-theme-secondary opacity-40" />
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-theme-secondary">Daily Essentials</h3>
-              <p className="text-xs opacity-40 uppercase tracking-widest">Core routine tracking</p>
+            
+            <div className="h-64 w-full">
+              {data?.chartData && data.chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.chartData}>
+                    <defs>
+                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(var(--theme-secondary-rgb), 0.05)" />
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: 'var(--theme-secondary)', opacity: 0.3, fontSize: 10}}
+                      dy={10}
+                    />
+                    <YAxis 
+                      hide 
+                      domain={[0, 100]} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'var(--theme-primary)', 
+                        border: '1px solid rgba(var(--theme-secondary-rgb), 0.1)',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+                      }}
+                      itemStyle={{ color: 'var(--accent)', fontWeight: 'bold' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="score" 
+                      stroke="var(--accent)" 
+                      strokeWidth={3}
+                      fillOpacity={1} 
+                      fill="url(#colorScore)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-theme-secondary opacity-40 space-y-2 border-2 border-dashed border-theme-secondary/10 rounded-3xl">
+                  <BarChart2 className="w-8 h-8 opacity-20" />
+                  <p className="text-sm font-medium">Log your daily progress to see trends</p>
+                </div>
+              )}
             </div>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-8">
-              <RoutineTracker data={data} userId={user.id} onRefresh={refreshData} />
-              
-              <section className="bg-theme-secondary/5 rounded-[32px] p-8 border border-theme-secondary/10">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-accent">Your Current Routine</h3>
-                  <div className="flex items-center gap-2 text-accent font-bold text-sm">
-                    <Activity className="w-4 h-4" /> Balanced
-                  </div>
+          </section>
+
+          <section className="bg-theme-secondary/5 rounded-[32px] p-8 border border-theme-secondary/10 relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center">
+                  <Sun className="w-5 h-5 text-accent" />
                 </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
-                      <Sun className="w-3 h-3" /> Morning
-                    </div>
-                    <div className="space-y-2">
-                      {user.routine && user.routine.filter(p => p.time === "AM" || p.time === "BOTH").length > 0 ? (
-                        user.routine.filter(p => p.time === "AM" || p.time === "BOTH").map((p, i) => (
-                          <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-accent" /> {p.name}
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-theme-secondary opacity-40 italic">No AM products</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
-                      <Moon className="w-3 h-3" /> Evening
-                    </div>
-                    <div className="space-y-2">
-                      {user.routine && user.routine.filter(p => p.time === "PM" || p.time === "BOTH").length > 0 ? (
-                        user.routine.filter(p => p.time === "PM" || p.time === "BOTH").map((p, i) => (
-                          <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-accent" /> {p.name}
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-theme-secondary opacity-40 italic">No PM products</p>
-                      )}
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="text-xl font-bold text-theme-secondary">Current Routine</h3>
+                  <p className="text-xs opacity-40 uppercase tracking-widest">Active products</p>
                 </div>
-                <div className="mt-8 pt-6 border-t border-theme-secondary/10 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Health Score</span>
-                      <span className="text-xl font-black text-accent">{data?.healthScore || 0}%</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setActiveTab("routine-builder")}
-                    className="text-xs font-bold text-theme-secondary opacity-60 hover:opacity-100 transition-all flex items-center gap-1"
-                  >
-                    Edit Routine <ArrowRight className="w-3 h-3" />
-                  </button>
+              </div>
+              <button 
+                onClick={() => setActiveTab("routine-builder")}
+                className="px-4 py-2 bg-theme-primary border border-theme-secondary/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-accent/50 transition-all shadow-sm"
+              >
+                Manage
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
+                  <Sun className="w-3 h-3" /> AM
                 </div>
-              </section>
+                <div className="space-y-2">
+                  {user.routine && user.routine.filter(p => p.time === "AM" || p.time === "BOTH").length > 0 ? (
+                    user.routine.filter(p => p.time === "AM" || p.time === "BOTH").slice(0, 4).map((p, i) => (
+                      <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2 bg-theme-primary/40 px-3 py-2 rounded-xl border border-theme-secondary/5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent" /> 
+                        <span className="truncate">{p.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-theme-secondary opacity-40 italic">No AM products</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-[10px] font-black opacity-30 uppercase tracking-widest">
+                  <Moon className="w-3 h-3" /> PM
+                </div>
+                <div className="space-y-2">
+                  {user.routine && user.routine.filter(p => p.time === "PM" || p.time === "BOTH").length > 0 ? (
+                    user.routine.filter(p => p.time === "PM" || p.time === "BOTH").slice(0, 4).map((p, i) => (
+                      <div key={i} className="text-sm font-medium text-theme-secondary opacity-80 flex items-center gap-2 bg-theme-primary/40 px-3 py-2 rounded-xl border border-theme-secondary/5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent" /> 
+                        <span className="truncate">{p.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-theme-secondary opacity-40 italic">No PM products</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div className="lg:col-span-4 space-y-8">
+          <section className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-bold text-theme-secondary">Daily Streak</h3>
+                <p className="text-xs text-theme-secondary opacity-40 uppercase tracking-widest mt-1">Consistency is key</p>
+              </div>
+              <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center">
+                <span className="text-2xl font-black text-accent">{data?.streak || 0}</span>
+              </div>
             </div>
 
-            <div className="space-y-8">
-              <CollapsibleSection title="Daily Check-in" icon={CheckCircle2} defaultOpen={true}>
-                <form className="space-y-4" onSubmit={handleSkinLog}>
+            <div className="grid grid-cols-2 gap-3 mb-8">
+              <button 
+                onClick={() => handleSkinLog({ preventDefault: () => {} } as any)}
+                disabled={isSavingCheckIn}
+                className="col-span-2 py-4 bg-accent text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2"
+              >
+                {isSavingCheckIn ? "Saving..." : "Log Activity"}
+              </button>
+            </div>
+
+            <div className="pt-8 border-t border-theme-secondary/5">
+              <CollapsibleSection title="Condition Check-in" icon={CheckCircle2} defaultOpen={true}>
+                <form className="space-y-4 pt-4" onSubmit={handleSkinLog}>
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Acne</label>
-                      <span className="text-xs font-bold text-accent">{checkInData.acne}</span>
+                      <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Acne</label>
+                      <span className="text-[10px] font-black text-accent">{checkInData.acne}</span>
                     </div>
                     <input 
-                      type="range" 
-                      min="0" max="10" 
+                      type="range" min="0" max="10" 
                       value={checkInData.acne}
                       onChange={e => setCheckInData({...checkInData, acne: parseInt(e.target.value)})}
-                      className="w-full accent-theme-secondary" 
+                      className="w-full accent-theme-secondary h-1" 
                     />
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Oiliness</label>
-                      <span className="text-xs font-bold text-accent">{checkInData.oiliness}</span>
+                      <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Irritation</label>
+                      <span className="text-[10px] font-black text-accent">{checkInData.irritation}</span>
                     </div>
                     <input 
-                      type="range" 
-                      min="0" max="10" 
-                      value={checkInData.oiliness}
-                      onChange={e => setCheckInData({...checkInData, oiliness: parseInt(e.target.value)})}
-                      className="w-full accent-theme-secondary" 
-                    />
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Dryness</label>
-                      <span className="text-xs font-bold text-accent">{checkInData.dryness}</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" max="10" 
-                      value={checkInData.dryness}
-                      onChange={e => setCheckInData({...checkInData, dryness: parseInt(e.target.value)})}
-                      className="w-full accent-theme-secondary" 
-                    />
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-xs uppercase tracking-wider font-bold opacity-50">Irritation</label>
-                      <span className="text-xs font-bold text-accent">{checkInData.irritation}</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" max="10" 
+                      type="range" min="0" max="10" 
                       value={checkInData.irritation}
                       onChange={e => setCheckInData({...checkInData, irritation: parseInt(e.target.value)})}
-                      className="w-full accent-theme-secondary" 
+                      className="w-full accent-theme-secondary h-1" 
                     />
                   </div>
-                  <button 
-                    type="submit"
-                    disabled={isSavingCheckIn}
-                    className="w-full py-3 bg-theme-primary border border-theme-secondary/20 rounded-xl font-bold hover:bg-theme-secondary/5 transition-all mt-4 shadow-sm disabled:opacity-50"
-                  >
-                    {isSavingCheckIn ? "Saving..." : "Save Check-in"}
-                  </button>
+                  <p className="text-[9px] text-theme-secondary opacity-40 italic text-center">Lower scores are usually better for skin conditions.</p>
                 </form>
               </CollapsibleSection>
             </div>
-          </div>
-        </section>
+          </section>
+
+          {(user.tier === 'premium' || EARLY_ACCESS_MODE) && (
+            <div className="bg-theme-secondary/5 border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
+              <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-6 flex items-center gap-2">
+                <Bookmark className="w-4 h-4" /> Quick Stats
+              </h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-theme-primary/50 rounded-xl">
+                  <span className="text-xs font-bold text-theme-secondary/60">Saved Routines</span>
+                  <span className="text-xs font-black text-accent">{data?.savedRoutines.length || 0}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-theme-primary/50 rounded-xl">
+                  <span className="text-xs font-bold text-theme-secondary/60">Analyses</span>
+                  <span className="text-xs font-black text-accent">{data?.savedAnalyses.length || 0}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {(user.tier === 'premium' || EARLY_ACCESS_MODE) && (
+        <div className="pt-8 mb-12">
+          <button 
+            onClick={() => setShowCompatibility(!showCompatibility)}
+            className="w-full flex items-center justify-between p-8 bg-theme-secondary/5 rounded-[40px] border-2 border-theme-secondary/10 hover:border-accent/40 transition-all group"
+          >
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-accent rounded-[24px] flex items-center justify-center shadow-lg shadow-accent/20 group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-2xl font-black text-theme-secondary tracking-tight">Skin Compatibility Guide</h3>
+                <p className="text-sm text-theme-secondary opacity-50 font-medium">Expert insights for your specific skin type.</p>
+              </div>
+            </div>
+            <div className={`p-4 bg-theme-secondary/10 rounded-2xl transition-transform duration-500 ${showCompatibility ? 'rotate-180' : ''}`}>
+              <ChevronDown className="w-6 h-6 text-theme-secondary" />
+            </div>
+          </button>
+          
+          <AnimatePresence>
+            {showCompatibility && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: "auto", marginTop: 24 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                className="overflow-hidden"
+              >
+                <SkinCompatibilityGuide />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
         {/* Section 2: Premium Insights (Pro) */}
         <section>
@@ -4745,7 +5207,7 @@ export default function App() {
   };
 
   const handleUpdateTheme = (themeId: string, accent: string) => {
-    if (user && user.id > 0) {
+    if (user && user.id) {
       const updatedUser = { ...user, theme_id: themeId, theme_primary_color: accent, theme_secondary_color: accent };
       setUser(updatedUser);
       localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
@@ -4753,7 +5215,7 @@ export default function App() {
   };
 
   const handleUpdateRoutine = async (routine: RoutineProduct[]) => {
-    if (user && user.id > 0) {
+    if (user && user.id) {
       const updatedUser = { ...user, routine };
       setUser(updatedUser);
       localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
@@ -4858,6 +5320,8 @@ export default function App() {
         onUpdateUser={handleUpdateProfile}
       />
 
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+
       <div className="fixed bottom-24 right-0 z-40 flex flex-col items-end">
         <AnimatePresence mode="wait">
           {!isFeedbackMinimized ? (
@@ -4915,7 +5379,7 @@ export default function App() {
         />
       )}
       
-      <main className="pb-20">
+      <main className="pb-32 md:pb-20">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             <Home 

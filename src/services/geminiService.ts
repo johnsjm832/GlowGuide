@@ -4,10 +4,10 @@ import { RoutineResponse, AnalysisResponse, RoutineProduct, RoutineAnalysis, Com
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export const geminiService = {
-  async analyzeIngredients(data: { productName: string, ingredients: string }): Promise<AnalysisResponse> {
+  async analyzeIngredients(data: { productName: string, ingredients: string, skinType?: string }): Promise<AnalysisResponse> {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Analyze these skincare ingredients for "${data.productName}":\n\n${data.ingredients}`,
+      contents: `Analyze these skincare ingredients for "${data.productName}"${data.skinType ? ` specifically for ${data.skinType} skin` : ""}:\n\n${data.ingredients}`,
       config: {
         systemInstruction: "You are an expert dermatological chemist. Analyze product ingredients objectively. Provide insights on compatibility, strengths, potential concerns, and best use cases. If no ingredients are provided, analyze based on the product name if possible, but prioritize the list. Include an 'insight' object with observation, cause, and action.",
         responseMimeType: "application/json",
