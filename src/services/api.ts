@@ -214,13 +214,46 @@ export const api = {
     return userSnap.data()?.savedComparisons || [];
   },
   
-  async deleteAnalysis(id: number): Promise<void> {
+  async deleteAnalysis(userId: string | number, id: number): Promise<void> {
+    try {
+      const userRef = doc(db, "users", String(userId));
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const saved = userSnap.data()?.savedAnalyses || [];
+        const filtered = saved.filter((a: any) => a.id !== id);
+        await updateDoc(userRef, { savedAnalyses: filtered });
+      }
+    } catch (e) {
+      console.error("Failed to delete analysis:", e);
+    }
   },
 
-  async deleteSavedRoutine(id: number): Promise<void> {
+  async deleteSavedRoutine(userId: string | number, id: number): Promise<void> {
+    try {
+      const userRef = doc(db, "users", String(userId));
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const saved = userSnap.data()?.savedRoutines || [];
+        const filtered = saved.filter((r: any) => r.id !== id);
+        await updateDoc(userRef, { savedRoutines: filtered });
+      }
+    } catch (e) {
+      console.error("Failed to delete routine:", e);
+    }
   },
 
-  async deleteComparison(id: number): Promise<void> {
+  async deleteComparison(userId: string | number, id: number): Promise<void> {
+    try {
+      const userRef = doc(db, "users", String(userId));
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const saved = userSnap.data()?.savedComparisons || [];
+        const filtered = saved.filter((c: any) => c.id !== id);
+        await updateDoc(userRef, { savedComparisons: filtered });
+      }
+    } catch (e) {
+      console.error("Failed to delete comparison:", e);
+    }
   },
 
   async startTrial(userId: string | number): Promise<{ success: boolean; user: any }> {
