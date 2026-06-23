@@ -11,12 +11,15 @@ import {
   ResponsiveContainer, 
   Legend,
   AreaChart,
-  Area
+  Area,
+  ReferenceLine
 } from 'recharts';
-import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard, Search, MessageSquare, ScanBarcode, Barcode, RefreshCw, BarChart2 } from "lucide-react";
+import { Sparkles, FlaskConical, LayoutDashboard, ShieldCheck, ArrowRight, Info, LogIn, LogOut, CheckCircle2, AlertCircle, Sun, Moon, Palette, X, Plus, Trash2, Calendar, Activity, GitCompare, Bookmark, Target, Star, Lightbulb, Beaker, User as UserIcon, Droplets, Zap, AlertTriangle, CheckCircle, Check, Eye, Trash, Share, Download, TrendingUp, Award, Clock, ChevronRight, ChevronDown, ChevronUp, Settings, CreditCard, Search, MessageSquare, ScanBarcode, Barcode, RefreshCw, BarChart2, Globe, Leaf } from "lucide-react";
 import { api } from "./services/api";
 import { geminiService } from "./services/geminiService";
+import { Logo } from "./components/Logo";
 import { Scanner } from "./components/Scanner";
+import { FaceMap, defaultZonesData } from "./components/FaceMap";
 import { fetchProductByBarcode } from "./services/beautyService";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { validateSkincareInput, validateDisplayName } from "./utils/validation";
@@ -37,7 +40,404 @@ import {
 import { auth, db } from "./lib/firebase";
 import { RoutineResponse, AnalysisResponse, User, DashboardData, RoutineProduct, RoutineAnalysis, ComparisonResponse, RoutineLog, SkinLog } from "./types.ts";
 
-const EARLY_ACCESS_MODE = true;
+const EARLY_ACCESS_MODE = false;
+
+export const translations: Record<string, Record<string, string>> = {
+  en: {
+    branding: "Klenly",
+    routineGen: "Routine Generator",
+    analyze: "Analyze",
+    compare: "Compare",
+    routineBuilder: "Routine Builder",
+    dashboard: "Dashboard",
+    settings: "Settings",
+    profile: "Profile",
+    appearance: "Appearance",
+    notifications: "Notifications",
+    savedItems: "Saved Items",
+    membership: "Membership",
+    language: "Language",
+    languageSelect: "Select Language",
+    signOut: "Sign Out",
+    signIn: "Sign In",
+    emailAddr: "Email Address",
+    displayName: "Display Name",
+    save: "Save",
+    routineScore: "Routine Score",
+    skinLog: "Daily Skin Log",
+    streak: "Streak",
+    skinHealthTrend: "Skin Health Trend",
+    skinDev: "Skin Development",
+    adjustMetrics: "Adjust Today's Metrics",
+    lastCheckIn: "Last check-in",
+    freePlan: "Free Plan",
+    proPlan: "Pro Plan",
+    activeUntil: "Active until",
+    unlockedEarlyAccess: "Unlocked during early access",
+    basicFeatures: "Basic features enabled",
+    seriousSkincare: "Serious Skin Care",
+    premiumTier: "Premium Tier",
+    cancelSub: "Cancel Subscription",
+    earlyAccess: "Early Access",
+    upgrade: "Upgrade",
+    today: "Today",
+    yesterday: "Yesterday",
+    never: "Never",
+    days: "Days",
+    unlimited: "Unlimited",
+    streakTracking: "Streak tracking",
+    shareableScorecards: "Shareable score cards",
+    routineScoreIndicators: "Routine score indicators",
+    skinLog30Days: "Skin log with up to 30 days history",
+    conflictDetection: "Routine Builder with conflict detection",
+    productComparisonPro: "Product Comparison (Pro)",
+    savedRoutinesAndAnalyses: "Unlimited saved routines & analyses",
+    fullSkinTrendCharts: "Full skin trend charts (> 30 days)",
+    healthScoreTrend: "Health score trend over time",
+    reminderSystem: "Notification and reminder system",
+    unlimitedHistory: "Unlimited logging history",
+    selectPremiumPlan: "Select Premium Plan",
+    instantPremiumAccess: "Instant access to all premium features listed above",
+    premiumMonthly: "Premium Monthly",
+    premiumYearly: "Premium Yearly",
+    bestValue: "best value",
+    save17: "Save 17% annually",
+    getMonthly: "Get Monthly",
+    getYearly: "Get Yearly (Best Value)",
+    genUsefulHabits: "Genuinely useful, habit-forming habits",
+    dryness: "Dryness",
+    acne: "Acne",
+    oiliness: "Oiliness",
+    irritation: "Irritation",
+    saveCheckIn: "Save Check-In",
+    saving: "Saving...",
+    cleanseMorning: "Cleanse (Morning)",
+    skincareRoutine: "Skincare Routine",
+    hydration: "Hydration",
+    treatment: "Treatment",
+    sunscreen: "Sunscreen / SPF",
+    skincareStrengths: "Skincare Strengths",
+    areasOfConcern: "Areas of Concern",
+    conflictingCombos: "Conflicting Combinations",
+    morningRoutine: "Morning Routine",
+    eveningRoutine: "Evening Routine",
+    homeTitle1: "Your skin,",
+    homeTitle2: "simplified.",
+    homeDesc: "Neutral, science-backed skincare guidance. Generate routines or analyze ingredients without the marketing hype.",
+    startFreeRoutine: "Start Free Routine",
+    learnMore: "Learn More",
+    safety: "Safety",
+    compatibility: "Compatibility",
+    balance: "Balance",
+    safetyTooltip: "Measures the lack of harsh ingredient combinations and overall formulation safety.",
+    compatibilityTooltip: "How well your products work together without neutralizing each other or causing irritation.",
+    balanceTooltip: "The ratio of active treatments to hydrating/soothing barrier support.",
+    startTrialBtn: "Start 7-Day Free Trial",
+    noCommit: "No commitment. Cancel anytime.",
+    featuredOn: "Featured On",
+    unlockBestSkin: "Unlock Your Best Skin",
+    unlockBestSkinDesc: "Get unlimited analyses, long-term tracking, and deeper AI insights.",
+    seriousSkincareDesc: "For those who are serious about skin",
+    earlyAccessPromo: "Premium features are currently unlocked during early access. Subscription will be required after launch.",
+  },
+  es: {
+    branding: "Klenly",
+    routineGen: "Generador de Rutina",
+    analyze: "Analizar",
+    compare: "Comparar",
+    routineBuilder: "Creador de Rutina",
+    dashboard: "Panel de Control",
+    settings: "Ajustes",
+    profile: "Perfil",
+    appearance: "Apariencia",
+    notifications: "Notificaciones",
+    savedItems: "Elementos Guardados",
+    membership: "Membresía",
+    language: "Idioma",
+    languageSelect: "Seleccionar Idioma",
+    signOut: "Cerrar Sesión",
+    signIn: "Iniciar Sesión",
+    emailAddr: "Correo Electrónico",
+    displayName: "Nombre de Pantalla",
+    save: "Guardar",
+    routineScore: "Puntaje de Rutina",
+    skinLog: "Registro de Piel",
+    streak: "Racha",
+    skinHealthTrend: "Tendencia de Salud",
+    skinDev: "Desarrollo de la Piel",
+    adjustMetrics: "Ajustar Métricas de Hoy",
+    lastCheckIn: "Último registro",
+    freePlan: "Plan Gratuito",
+    proPlan: "Plan Pro",
+    activeUntil: "Activo hasta",
+    unlockedEarlyAccess: "Desbloqueado en acceso temprano",
+    basicFeatures: "Funciones básicas activadas",
+    seriousSkincare: "Cuidado de Piel Serio",
+    premiumTier: "Nivel Premium",
+    cancelSub: "Cancelar Suscripción",
+    earlyAccess: "Acceso Temprano",
+    upgrade: "Mejorar",
+    today: "Hoy",
+    yesterday: "Ayer",
+    never: "Nunca",
+    days: "Días",
+    unlimited: "Ilimitado",
+    streakTracking: "Seguimiento de racha",
+    shareableScorecards: "Tarjetas de puntaje compartibles",
+    routineScoreIndicators: "Indicadores de rutina",
+    skinLog30Days: "Historial de piel hasta 30 días",
+    conflictDetection: "Creador de rutinas con detección de conflictos",
+    productComparisonPro: "Comparación de productos (Pro)",
+    savedRoutinesAndAnalyses: "Análisis y rutinas guardadas ilimitadas",
+    fullSkinTrendCharts: "Gráficos de tendencia completos (> 30 días)",
+    healthScoreTrend: "Tendencia de puntaje de salud en el tiempo",
+    reminderSystem: "Sistema de notificaciones y recordatorios",
+    unlimitedHistory: "Historial de registro ilimitado",
+    selectPremiumPlan: "Seleccionar Plan Premium",
+    instantPremiumAccess: "Acceso instantáneo a todas las funciones premium",
+    premiumMonthly: "Pro Mensual",
+    premiumYearly: "Pro Anual",
+    bestValue: "mejor valor",
+    save17: "Ahorra 17% anualmente",
+    getMonthly: "Obtener Mensual",
+    getYearly: "Obtener Anual (Mejor Valor)",
+    genUsefulHabits: "Hábitos genuinamente útiles y formadores",
+    dryness: "Resequedad",
+    acne: "Acné",
+    oiliness: "Grasitud",
+    irritation: "Irritación",
+    saveCheckIn: "Guardar Registro",
+    saving: "Guardando...",
+    cleanseMorning: "Limpieza (Mañana)",
+    skincareRoutine: "Rutina de Cuidado de Piel",
+    hydration: "Hidratación",
+    treatment: "Tratamiento",
+    sunscreen: "Protector Solar / SPF",
+    skincareStrengths: "Fortalezas de Rutina",
+    areasOfConcern: "Áreas de Preocupación",
+    conflictingCombos: "Combinaciones Conflictivas",
+    morningRoutine: "Rutina de Mañana",
+    eveningRoutine: "Rutina de Noche",
+    homeTitle1: "Tu piel,",
+    homeTitle2: "simplificada.",
+    homeDesc: "Orientación neutral del cuidado de la piel respaldada por la ciencia. Genera rutinas o analiza ingredientes sin publicidad comercial engañosa.",
+    startFreeRoutine: "Iniciar Rutina Gratuita",
+    learnMore: "Aprender más",
+    safety: "Seguridad",
+    compatibility: "Compatibilidad",
+    balance: "Balance",
+    safetyTooltip: "Mide la ausencia de combinaciones de ingredientes agresivos y la seguridad general de la fórmula.",
+    compatibilityTooltip: "Qué tan bien funcionan tus productos juntos sin neutralizarse entre sí ni causar irritación.",
+    balanceTooltip: "La proporción de tratamientos activos frente al soporte protector hidratante/calmante.",
+    startTrialBtn: "Iniciar prueba gratuita de 7 días",
+    noCommit: "Sin compromiso. Cancela en cualquier momento.",
+    featuredOn: "Destacado en",
+    unlockBestSkin: "Desbloquea tu mejor piel",
+    unlockBestSkinDesc: "Obtén análisis ilimitados, seguimiento a largo plazo y conocimientos de IA más profundos.",
+    seriousSkincareDesc: "Para quienes se toman en serio el cuidado de la piel",
+    earlyAccessPromo: "Las funciones premium están actualmente desbloqueadas durante el acceso temprano. Se requerirá suscripción después del lanzamiento.",
+  },
+  fr: {
+    branding: "Klenly",
+    routineGen: "Générateur de Routine",
+    analyze: "Analyser",
+    compare: "Comparer",
+    routineBuilder: "Créateur de Routine",
+    dashboard: "Tableau de Bord",
+    settings: "Paramètres",
+    profile: "Profil",
+    appearance: "Apparence",
+    notifications: "Notifications",
+    savedItems: "Éléments Enregistrés",
+    membership: "Abonnement",
+    language: "Langue",
+    languageSelect: "Choisir la Langue",
+    signOut: "Se déconnecter",
+    signIn: "Se connecter",
+    emailAddr: "Adresse E-mail",
+    displayName: "Nom d'affichage",
+    save: "Enregistrer",
+    routineScore: "Score de Routine",
+    skinLog: "Journal de Peau",
+    streak: "Série",
+    skinHealthTrend: "Évolution de Santé",
+    skinDev: "Développement de Peau",
+    adjustMetrics: "Ajuster les Métriques du Jour",
+    lastCheckIn: "Dernier check-in",
+    freePlan: "Plan Gratuit",
+    proPlan: "Plan Pro",
+    activeUntil: "Actif jusqu'au",
+    unlockedEarlyAccess: "Débloqué en accès anticipé",
+    basicFeatures: "Fonctionnalités de base",
+    seriousSkincare: "Soins de Peau Sérieux",
+    premiumTier: "Niveau Premium",
+    cancelSub: "Résilier l'abonnement",
+    earlyAccess: "Accès Anticipé",
+    upgrade: "Mettre à niveau",
+    today: "Aujourd'hui",
+    yesterday: "Hier",
+    never: "Jamais",
+    days: "Jours",
+    unlimited: "Illimité",
+    streakTracking: "Suivi des séries",
+    shareableScorecards: "Fiches de score partageables",
+    routineScoreIndicators: "Indicateurs de score de routine",
+    skinLog30Days: "Historique de peau jusqu'à 30 jours",
+    conflictDetection: "Créateur de routine avec détection de conflits",
+    productComparisonPro: "Comparaison de produits (Pro)",
+    savedRoutinesAndAnalyses: "Analyses & routines enregistrées illimitées",
+    fullSkinTrendCharts: "Graphiques d'évolution complets (> 30 jours)",
+    healthScoreTrend: "Évolution du score de santé",
+    reminderSystem: "Système de notifications & rappels",
+    unlimitedHistory: "Historique de journalisation illimité",
+    selectPremiumPlan: "Choisir un Plan Premium",
+    instantPremiumAccess: "Accès instantané à toutes les fonctionnalités premium",
+    premiumMonthly: "Premium Mensuel",
+    premiumYearly: "Premium Annuel",
+    bestValue: "meilleure offre",
+    save17: "Économisez 17% par an",
+    getMonthly: "Prendre un Mois",
+    getYearly: "Prendre un An (Meilleure Offre)",
+    genUsefulHabits: "Habitudes utiles et durables",
+    dryness: "Sécheresse",
+    acne: "Acné",
+    oiliness: "Excès de sébum",
+    irritation: "Irritation",
+    saveCheckIn: "Enregistrer",
+    saving: "Enregistrement...",
+    cleanseMorning: "Nettoyage (Matin)",
+    skincareRoutine: "Routine de Soin",
+    hydration: "Hydratation",
+    treatment: "Traitement",
+    sunscreen: "Écran Solaire / SPF",
+    skincareStrengths: "Forces des Soins",
+    areasOfConcern: "Zones Préoccupantes",
+    conflictingCombos: "Combinaisons Conflictuelles",
+    morningRoutine: "Routine du Matin",
+    eveningRoutine: "Routine du Soir",
+    homeTitle1: "Votre peau,",
+    homeTitle2: "simplifiée.",
+    homeDesc: "Conseils neutres sur les soins de la peau, basés sur la science. Générez des routines ou analysez les ingrédients sans artifice marketing.",
+    startFreeRoutine: "Démarrer Routine Gratuite",
+    learnMore: "En Savoir Plus",
+    safety: "Sécurité",
+    compatibility: "Compatibilité",
+    balance: "Équilibre",
+    safetyTooltip: "Mesure l'absence de combinaisons d'ingrédients agressifs et la sécurité globale de la formulation.",
+    compatibilityTooltip: "La façon dont vos produits fonctionnent ensemble sans se neutraliser ni provoquer d'irritation.",
+    balanceTooltip: "Rapport entre les traitements actifs et le soutien protecteur hydratant/apaisant.",
+    startTrialBtn: "Commencer l'essai gratuit de 7 jours",
+    noCommit: "Sans engagement. Annulez à tout moment.",
+    featuredOn: "Présenté sur",
+    unlockBestSkin: "Révélez votre plus belle peau",
+    unlockBestSkinDesc: "Profitez d'analyses illimitées, d'un suivi à long terme et d'analyses IA approfondies.",
+    seriousSkincareDesc: "Pour ceux qui prennent soin de leur peau avec sérieux",
+    earlyAccessPromo: "Les fonctionnalités premium sont actuellement débloquées pendant l'accès anticipé. Un abonnement sera requis après le lancement.",
+  },
+  ko: {
+    branding: "Klenly",
+    routineGen: "루틴 생성기",
+    analyze: "성분 분석",
+    compare: "제품 비교",
+    routineBuilder: "루틴 빌더",
+    dashboard: "대시보드",
+    settings: "설정",
+    profile: "프로필",
+    appearance: "디자인 설정",
+    notifications: "알림 설정",
+    savedItems: "저장된 항목",
+    membership: "멤버십 수강권",
+    language: "언어 설정",
+    languageSelect: "언어 선택",
+    signOut: "로그아웃",
+    signIn: "로그인",
+    emailAddr: "이메일 주소",
+    displayName: "닉네임",
+    save: "저장",
+    routineScore: "루틴 점수",
+    skinLog: "스킨 로그",
+    streak: "연속 기록",
+    skinHealthTrend: "피부 회복 트렌드",
+    skinDev: "피부 변화 분석",
+    adjustMetrics: "오늘의 피부 상태 설정",
+    lastCheckIn: "마지막 기록",
+    freePlan: "무료 이용",
+    proPlan: "프로 멤버십",
+    activeUntil: "만료 예정일",
+    unlockedEarlyAccess: "정식 오픈 전 조기 액세스",
+    basicFeatures: "기본 기능 적용됨",
+    seriousSkincare: "집중적인 피부 케어",
+    premiumTier: "프리미엄 등급",
+    cancelSub: "구독 정기결제 취소",
+    earlyAccess: "얼리 액세스",
+    upgrade: "프로로 업그레이드",
+    today: "오늘",
+    yesterday: "어제",
+    never: "기록 없음",
+    days: "일",
+    unlimited: "무제한",
+    streakTracking: "연속 기록 트래킹",
+    shareableScorecards: "점수 공유용 카드",
+    routineScoreIndicators: "루틴 점수 지표",
+    skinLog30Days: "최대 30일간의 스킨 로그 기록",
+    conflictDetection: "화학 성분 충돌 감지 루틴 빌더",
+    productComparisonPro: "제품 성분 전면 비교 (Pro)",
+    savedRoutinesAndAnalyses: "생성 루틴 & 성분 분석 저장 무제한",
+    fullSkinTrendCharts: "장기 피부 트렌드 분석 리포트 (> 30일)",
+    healthScoreTrend: "종합 피부 개선도 통계 분석",
+    reminderSystem: "자동 알림 및 관리 푸시 시스템",
+    unlimitedHistory: "평생 누적 스킨 기록 추적",
+    selectPremiumPlan: "프리미엄 요금제 선택",
+    instantPremiumAccess: "위 모든 프로 전용 기능 즉시 오픈",
+    premiumMonthly: "프로 월간 패스",
+    premiumYearly: "프로 연간 패스",
+    bestValue: "최대 혜택",
+    save17: "연 결제 시 17% 할인",
+    getMonthly: "월 결제 시작",
+    getYearly: "연 결제 시작 (최대 혜택)",
+    genUsefulHabits: "실용적이고 즐거운 피부 습관 키우기",
+    dryness: "건조함",
+    acne: "트러블/여드름",
+    oiliness: "유분기/피지",
+    irritation: "자극/붉은기",
+    saveCheckIn: "피부 일지 저장",
+    saving: "기록 중...",
+    cleanseMorning: "아침 세안",
+    skincareRoutine: "스킨케어 추천 루틴",
+    hydration: "수분 보충",
+    treatment: "기능성 트리트먼트",
+    sunscreen: "선크림 / 자외선 차단",
+    skincareStrengths: "현재 루틴의 강점",
+    areasOfConcern: "주의 관찰 영역",
+    conflictingCombos: "부작용 충돌 우려 성분",
+    morningRoutine: "아침 케어 루틴",
+    eveningRoutine: "저녁 케어 루틴",
+    homeTitle1: "가장 이해하기 쉬운",
+    homeTitle2: "스킨 케어.",
+    homeDesc: "과대광고 없이 뉴트럴하고 과학적인 피부 성분 가이드를 제공합니다. 인공지능 루틴 설계와 성분 분석을 시작해 보세요.",
+    startFreeRoutine: "무료 루틴 시작하기",
+    learnMore: "자세히 알아보기",
+    safety: "안전성",
+    compatibility: "호환성",
+    balance: "균형도",
+    safetyTooltip: "자극적인 성분 조합 유무와 전반적인 성분의 안전한 배합 정도를 판단합니다.",
+    compatibilityTooltip: "성분 간 충돌로 효과가 상쇄되거나 피부 자극을 유발하는지 여부를 검증합니다.",
+    balanceTooltip: "기능성 성분과 장벽 강화 및 진정용 수분 공급의 황금비율을 측정합니다.",
+    startTrialBtn: "7일 무료 체험 시작하기",
+    noCommit: "약정 없음. 언제든지 취소 가능",
+    featuredOn: "소개된 매체",
+    unlockBestSkin: "당신의 가장 빛나는 피부를 얻으세요",
+    unlockBestSkinDesc: "무제한 성분 분석, 장기적인 데이터 추적, 정교한 AI 인공지능 추천이 제공됩니다.",
+    seriousSkincareDesc: "피부 건강 관리에 진심인 분들을 위한 혜택",
+    earlyAccessPromo: "현재 얼리 액세스 이벤트 기간 동안 모든 프리미엄 기능을 무료로 사용해 볼 수 있습니다. 정식 출시 이후 구독이 필요할 수 있습니다.",
+  }
+};
+
+// Simple global translation accessor
+export function translate(key: string, lang: string = "en"): string {
+  const dictionary = translations[lang] || translations.en;
+  return dictionary[key] || translations.en[key] || key;
+}
 
 // --- Components ---
 
@@ -94,7 +494,7 @@ const FeedbackModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: ()
             <CheckCircle2 className="w-8 h-8 text-emerald-500" />
           </div>
           <h3 className="text-xl font-bold text-theme-secondary mb-2">Thank you!</h3>
-          <p className="text-theme-secondary opacity-60">Your feedback helps us make GlowGuide better for everyone.</p>
+          <p className="text-theme-secondary opacity-60">Your feedback helps us make Klenly better for everyone.</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -173,13 +573,13 @@ const ConversionPrompt = ({ onUpgrade }: { onUpgrade: () => void }) => (
   </motion.div>
 );
 
-const BottomNav = ({ activeTab, setActiveTab, user }: { activeTab: string, setActiveTab: (t: string) => void, user: User | null }) => {
+const BottomNav = ({ activeTab, setActiveTab, user, language = "en" }: { activeTab: string, setActiveTab: (t: string) => void, user: User | null, language?: string }) => {
   const navItems = [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'routine', label: 'Routine', icon: FlaskConical },
-    { id: 'analyze', label: 'Analyze', icon: Search },
-    { id: 'compare', label: 'Compare', icon: GitCompare },
-    { id: 'routine-builder', label: 'Builder', icon: Palette },
+    { id: 'dashboard', label: translate('dashboard', language), icon: LayoutDashboard },
+    { id: 'routine', label: translate('routineGen', language), icon: FlaskConical },
+    { id: 'analyze', label: translate('analyze', language), icon: Search },
+    { id: 'compare', label: translate('compare', language), icon: GitCompare },
+    { id: 'routine-builder', label: translate('routineBuilder', language), icon: Palette },
   ];
 
   return (
@@ -192,12 +592,12 @@ const BottomNav = ({ activeTab, setActiveTab, user }: { activeTab: string, setAc
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center gap-1 min-w-[64px] transition-all ${
+              className={`flex flex-col items-center justify-center gap-1 min-w-[64px] transition-all relative ${
                 isActive ? 'text-accent' : 'text-theme-secondary/40'
               }`}
             >
               <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : 'scale-100'} transition-transform`} />
-              <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+              <span className="text-[9px] font-bold uppercase tracking-tighter truncate max-w-[64px]">{item.label}</span>
               {isActive && (
                 <motion.div 
                   layoutId="bottom-nav-active"
@@ -221,7 +621,8 @@ const Navbar = ({
   toggleDarkMode, 
   onUpgrade,
   dashboard,
-  onUpdateUser
+  onUpdateUser,
+  language = "en"
 }: { 
   activeTab: string, 
   setActiveTab: (t: string) => void, 
@@ -231,19 +632,18 @@ const Navbar = ({
   toggleDarkMode: () => void, 
   onUpgrade: () => void,
   dashboard: DashboardData | null,
-  onUpdateUser: (u: User) => void
+  onUpdateUser: (u: User) => void,
+  language?: string
 }) => (
   <div className="z-50 w-full">
     {/* Tier 1: Branding & Actions (Scrolls away) */}
     <div className="bg-theme-primary border-b border-theme-secondary/5">
       <div className="max-w-6xl mx-auto px-4 h-16 sm:h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => setActiveTab(user ? "dashboard" : "routine")}>
-          <div className="w-8 h-8 sm:w-7 sm:h-7 bg-accent rounded-xl sm:rounded-lg flex items-center justify-center shadow-sm shadow-accent/20">
-            <Sparkles className="text-white w-4.5 h-4.5 sm:w-4 sm:h-4" />
-          </div>
+          <Logo size="custom" className="w-8 h-8 sm:w-7 sm:h-7 shadow-sm shadow-accent/20" showBackground={true} />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-theme-secondary tracking-tight text-lg sm:text-base leading-none">GlowGuide</span>
+              <span className="font-bold text-theme-secondary tracking-tight text-lg sm:text-base leading-none">Klenly</span>
               {user?.tier === 'premium' ? (
                 <span className="bg-accent text-white text-[7px] font-black px-1 py-0.5 rounded-md uppercase tracking-widest">Pro</span>
               ) : EARLY_ACCESS_MODE ? (
@@ -278,18 +678,18 @@ const Navbar = ({
                   className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-full text-[10px] font-bold hover:bg-accent/20 transition-all"
                 >
                   <Award className="w-3 h-3" />
-                  {EARLY_ACCESS_MODE ? 'Early Access' : 'Upgrade'}
+                  {EARLY_ACCESS_MODE ? translate('earlyAccess', language) : translate('upgrade', language)}
                 </button>
               )}
               <button onClick={onLogout} className="flex items-center gap-2 p-3 sm:p-0 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary transition-colors">
                 <LogOut className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span className="hidden sm:inline">{translate('signOut', language)}</span>
               </button>
             </div>
           ) : (
             <button onClick={() => setActiveTab("dashboard")} className="flex items-center gap-2 p-3 sm:p-0 text-xs font-bold text-theme-secondary/60 hover:text-theme-secondary transition-colors">
               <LogIn className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden sm:inline">Sign In</span>
+              <span className="hidden sm:inline">{translate('signIn', language)}</span>
             </button>
           )}
         </div>
@@ -304,21 +704,21 @@ const Navbar = ({
             onClick={() => setActiveTab("routine")}
             className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "routine" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
           >
-            Routine Generator
+            {translate('routineGen', language)}
             {activeTab === "routine" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
           </button>
           <button 
             onClick={() => setActiveTab("analyze")}
             className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "analyze" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
           >
-            Analyze
+            {translate('analyze', language)}
             {activeTab === "analyze" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
           </button>
           <button 
             onClick={() => setActiveTab("compare")}
             className={`text-xs font-bold transition-all relative py-1 shrink-0 flex items-center gap-1.5 uppercase tracking-widest ${activeTab === "compare" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
           >
-            Compare
+            {translate('compare', language)}
             {user?.tier !== 'premium' && (
               EARLY_ACCESS_MODE 
                 ? <Sparkles className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />
@@ -328,16 +728,21 @@ const Navbar = ({
           </button>
           <button 
             onClick={() => setActiveTab("routine-builder")}
-            className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "routine-builder" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
+            className={`text-xs font-bold transition-all relative py-1 shrink-0 flex items-center gap-1.5 uppercase tracking-widest ${activeTab === "routine-builder" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
           >
-            Routine Builder
+            {translate('routineBuilder', language)}
+            {user?.tier !== 'premium' && (
+              EARLY_ACCESS_MODE 
+                ? <Sparkles className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />
+                : <Award className="w-2.5 h-2.5 text-accent opacity-50" />
+            )}
             {activeTab === "routine-builder" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
           </button>
           <button 
             onClick={() => setActiveTab("dashboard")}
             className={`text-xs font-bold transition-all relative py-1 shrink-0 uppercase tracking-widest ${activeTab === "dashboard" ? "text-accent" : "text-theme-secondary/40 hover:text-theme-secondary"}`}
           >
-            Dashboard
+            {translate('dashboard', language)}
             {activeTab === "dashboard" && <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent" />}
           </button>
         </div>
@@ -363,11 +768,9 @@ const RoutineShareCard = React.forwardRef<HTMLDivElement, {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-            <Sparkles className="text-white w-5 h-5" />
-          </div>
+          <Logo size="md" showBackground={true} />
           <div className="flex flex-col">
-            <span className="font-bold text-theme-secondary tracking-tight leading-none">GlowGuide</span>
+            <span className="font-bold text-theme-secondary tracking-tight leading-none">Klenly</span>
             <span className="text-[8px] font-medium text-theme-secondary opacity-50 tracking-tight">Smarter skincare routines</span>
           </div>
         </div>
@@ -429,7 +832,7 @@ const RoutineShareCard = React.forwardRef<HTMLDivElement, {
       </div>
 
       <div className="pt-4 border-t border-theme-secondary/5 text-center">
-        <p className="text-[10px] font-bold text-theme-secondary opacity-20 uppercase tracking-[0.3em]">GlowGuide • Skincare Intelligence</p>
+        <p className="text-[10px] font-bold text-theme-secondary opacity-20 uppercase tracking-[0.3em]">Klenly • Skincare Intelligence</p>
       </div>
     </div>
   );
@@ -508,9 +911,9 @@ const AuthGateModal: React.FC<{
   description: string;
   preview?: { am?: string[]; pm?: string[] };
 }> = ({ isOpen, onClose, onLogin, title, description, preview }) => {
-  const [email, setEmail] = useState(() => localStorage.getItem("glowguide_remembered_email") || "");
+  const [email, setEmail] = useState(() => localStorage.getItem("klenly_remembered_email") || "");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem("glowguide_remembered_email"));
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem("klenly_remembered_email"));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -600,9 +1003,9 @@ const AuthGateModal: React.FC<{
       }
       
       if (rememberMe) {
-        localStorage.setItem("glowguide_remembered_email", email);
+        localStorage.setItem("klenly_remembered_email", email);
       } else {
-        localStorage.removeItem("glowguide_remembered_email");
+        localStorage.removeItem("klenly_remembered_email");
       }
       onClose();
     } catch (err: any) {
@@ -636,24 +1039,83 @@ const AuthGateModal: React.FC<{
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 mb-4 text-left">
-          <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10">
-            <h3 className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">Free Account</h3>
-            <ul className="space-y-1.5 text-xs text-theme-secondary opacity-70">
-              <li className="flex items-center gap-2"><Check className="w-3 h-3 text-emerald-500" /> Save 1 custom routine</li>
-              <li className="flex items-center gap-2"><Check className="w-3 h-3 text-emerald-500" /> 3 ingredient analyses per day</li>
-              <li className="flex items-center gap-2"><Check className="w-3 h-3 text-emerald-500" /> Basic skin health score</li>
-            </ul>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+          {/* Free Plan ShowcaseCard */}
+          <div className="p-5 bg-theme-secondary/5 rounded-3xl border border-theme-secondary/10 hover:border-theme-secondary/20 transition-all space-y-3 flex flex-col justify-between">
+            <div>
+              <h3 className="text-[10px] font-black text-theme-secondary uppercase tracking-widest flex items-center gap-1.5 opacity-60">
+                <UserIcon className="w-3.5 h-3.5" /> Free Plan
+              </h3>
+              <ul className="space-y-2 mt-4">
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Routine Generator <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1 rounded">Unlimited</span></span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Ingredient Scanner / Barcode <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 rounded">3/day</span></span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Active Skincare Routine <span className="text-[9px] font-normal text-theme-secondary/50">(Save 1)</span></span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Skin Progress Graph <span className="text-[9px] font-normal text-theme-secondary/50">(Overall tracking)</span></span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Streak & Consistency Tracking</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="p-4 bg-accent/5 rounded-2xl border border-accent/10">
-            <h3 className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">
-              Premium Features {EARLY_ACCESS_MODE && <span className="text-emerald-500 ml-1">(Unlocked)</span>}
-            </h3>
-            <ul className="space-y-1.5 text-xs text-theme-secondary opacity-70">
-              <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-accent" /> Unlimited routine saves</li>
-              <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-accent" /> Unlimited ingredient analysis</li>
-              <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-accent" /> Advanced progress tracking</li>
-            </ul>
+
+          {/* Premium Plan ShowcaseCard */}
+          <div className="p-5 bg-accent/5 rounded-3xl border border-accent/20 hover:border-accent/40 transition-all space-y-3 relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-2 right-2 bg-accent/20 text-accent text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-accent/30 animate-pulse">
+              Serious Skin Care
+            </div>
+            <div>
+              <h3 className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1.5">
+                <Leaf className="w-3.5 h-3.5 text-accent" /> Premium Tier {EARLY_ACCESS_MODE && <span className="text-emerald-500 ml-1">(Unlocked)</span>}
+              </h3>
+              <p className="text-[10px] text-accent font-bold mt-1">For those who are serious about skin</p>
+              <ul className="space-y-2 mt-4">
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>Unlimited saved routines & analyses</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>Interactive 3D-mapped face history (supersedes basic graph)</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>Zone-specific skin trend sparklines</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span className="flex items-center gap-1">Enlargeable multi-condition detail analysis</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>Advanced Product Comparison</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>Chemical formulation conflict detection</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>Fully featured notification & reminders</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>Unlimited historic skin check-ins</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -767,9 +1229,10 @@ const SubscriptionModal: React.FC<{
   onSubscribe: (plan: 'monthly' | 'yearly') => void;
   onStartTrial: () => void;
   user: User | null;
-}> = ({ isOpen, onClose, onSubscribe, onStartTrial, user }) => {
+  language?: string;
+}> = ({ isOpen, onClose, onSubscribe, onStartTrial, user, language = "en" }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="GlowGuide Premium">
+    <Modal isOpen={isOpen} onClose={onClose} title={`${translate('branding', language)} Premium`}>
       <div className="space-y-8 py-4">
         {EARLY_ACCESS_MODE && (
           <div className="p-4 bg-accent/10 border-2 border-accent/20 rounded-3xl flex items-center gap-4">
@@ -777,7 +1240,7 @@ const SubscriptionModal: React.FC<{
               <Sparkles className="text-accent w-6 h-6" />
             </div>
             <p className="text-xs font-bold text-theme-secondary leading-relaxed">
-              Premium features are currently unlocked during early access. Subscription will be required after launch.
+              {translate('earlyAccessPromo', language)}
             </p>
           </div>
         )}
@@ -786,58 +1249,138 @@ const SubscriptionModal: React.FC<{
             <Award className="w-10 h-10 text-accent" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-2xl font-bold text-theme-secondary tracking-tight">Unlock Your Best Skin</h3>
-            <p className="text-theme-secondary opacity-60 max-w-sm mx-auto">Get unlimited analyses, long-term tracking, and deeper AI insights.</p>
+            <h3 className="text-2xl font-bold text-theme-secondary tracking-tight">{translate('unlockBestSkin', language)}</h3>
+            <p className="text-theme-secondary opacity-60 max-w-sm mx-auto">{translate('unlockBestSkinDesc', language)}</p>
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="p-6 bg-theme-secondary/5 border-2 border-theme-secondary/10 rounded-3xl space-y-4 relative overflow-hidden group hover:border-accent/30 transition-all">
-            <div className="space-y-1">
-              <h4 className="text-lg font-bold text-theme-secondary">Monthly</h4>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-theme-secondary">$9.99</span>
-                <span className="text-sm font-bold text-theme-secondary opacity-40">/mo</span>
-              </div>
-            </div>
-            <ul className="space-y-2">
-              {["Unlimited Analysis", "Save Unlimited Routines", "Skin Progress Tracking"].map(f => (
-                <li key={f} className="flex items-center gap-2 text-xs font-medium text-theme-secondary opacity-70">
-                  <Check className="w-3 h-3 text-accent" /> {f}
+        {/* Side-by-side plans comparison */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+          {/* Free Plan ShowcaseCard */}
+          <div className="p-5 bg-theme-secondary/5 rounded-3xl border border-theme-secondary/10 hover:border-theme-secondary/20 transition-all space-y-3 flex flex-col justify-between">
+            <div>
+              <h3 className="text-[10px] font-black text-theme-secondary uppercase tracking-widest flex items-center gap-1.5 opacity-60">
+                <UserIcon className="w-3.5 h-3.5" /> {translate('freePlan', language)}
+              </h3>
+              <ul className="space-y-2 mt-4">
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>{translate('routineGen', language)} <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1 rounded">{translate('unlimited', language)}</span></span>
                 </li>
-              ))}
-            </ul>
-            <button 
-              onClick={() => onSubscribe('monthly')}
-              className="w-full py-3 bg-theme-secondary text-theme-primary rounded-2xl font-bold text-sm hover:opacity-90 transition-all"
-            >
-              Choose Monthly
-            </button>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>{translate('analyze', language)} / {translate('compare', language) === "Comparar" ? "Código de Barras" : translate('compare', language) === "자세히 알아보기" ? "바코드" : "Barcode"} <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 rounded">3/day</span></span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>{translate('language') === "Idioma" ? "Guardar 1 rutina activa" : "Save 1 active routine"}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>{translate('language') === "Idioma" ? "Gráfico de progreso de la piel" : "Overall skin progress graph"}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>{translate('streakTracking', language)}</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <div className="p-6 bg-accent/5 border-2 border-accent/20 rounded-3xl space-y-4 relative overflow-hidden group hover:border-accent/50 transition-all">
-            <div className="absolute top-3 right-3 bg-accent text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest">Best Value</div>
-            <div className="space-y-1">
-              <h4 className="text-lg font-bold text-theme-secondary">Yearly</h4>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-theme-secondary">$99</span>
-                <span className="text-sm font-bold text-theme-secondary opacity-40">/yr</span>
-              </div>
-              <div className="text-[10px] font-bold text-accent">Save 17% annually</div>
+          {/* Premium Plan ShowcaseCard */}
+          <div className="p-5 bg-accent/5 rounded-3xl border border-accent/20 hover:border-accent/40 transition-all space-y-3 relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-2 right-2 bg-accent/20 text-accent text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-accent/30 animate-pulse">
+              {translate('seriousSkincare', language)}
             </div>
-            <ul className="space-y-2">
-              {["Everything in Monthly", "Priority AI Support", "Early Access Features"].map(f => (
-                <li key={f} className="flex items-center gap-2 text-xs font-medium text-theme-secondary opacity-70">
-                  <Check className="w-3 h-3 text-accent" /> {f}
+            <div>
+              <h3 className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1.5">
+                <Leaf className="w-3.5 h-3.5 text-accent" /> {translate('premiumTier', language)}
+              </h3>
+              <p className="text-[10px] text-accent font-bold mt-1">{translate('seriousSkincareDesc', language)}</p>
+              <ul className="space-y-2 mt-4">
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('savedRoutinesAndAnalyses', language)}</span>
                 </li>
-              ))}
-            </ul>
-            <button 
-              onClick={() => onSubscribe('yearly')}
-              className="w-full py-3 bg-accent text-white rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-accent/20"
-            >
-              Choose Yearly
-            </button>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('language') === "Idioma" ? "Historial de rostro interactivo 3D (reemplaza gráfico básico)" : "Interactive 3D-mapped face history (supersedes basic graph)"}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('language') === "Idioma" ? "Gráficos de zonas faciales" : "Zone-specific skin trend sparklines"}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('language') === "Idioma" ? "Análisis ampliable de condiciones" : "Enlargeable multi-condition detail analysis"}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('language') === "Idioma" ? "Comparación de productos avanzada" : "Advanced Product Comparison"}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('conflictDetection', language)}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('reminderSystem', language)}</span>
+                </li>
+                <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
+                  <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                  <span>{translate('unlimitedHistory', language)}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Premium billing section below comparison */}
+        <div className="space-y-4 pt-4 border-t border-theme-secondary/10">
+          <div className="text-center space-y-1">
+            <h4 className="text-[10px] font-black uppercase text-accent tracking-[0.1em]">{translate('selectPremiumPlan', language)}</h4>
+            <p className="text-[10px] text-theme-secondary opacity-60">{translate('instantPremiumAccess', language)}</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Monthly Premium */}
+            <div className="p-4 bg-theme-secondary/5 border-2 border-theme-secondary/10 rounded-2xl flex flex-col justify-between hover:border-accent/20 transition-all">
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="text-sm font-bold text-theme-secondary">{translate('premiumMonthly', language)}</span>
+                <div>
+                  <span className="text-xl font-black text-theme-secondary">$9.99</span>
+                  <span className="text-[10px] font-bold text-theme-secondary opacity-40">/mo</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => onSubscribe('monthly')}
+                className="w-full py-2.5 bg-theme-secondary text-theme-primary rounded-xl font-bold text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1"
+              >
+                {translate('getMonthly', language)}
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Yearly Premium */}
+            <div className="p-4 bg-accent/5 border-2 border-accent/20 rounded-2xl flex flex-col justify-between hover:border-accent/40 transition-all relative overflow-hidden">
+              <div className="absolute top-1.5 right-1.5 bg-accent text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-widest">{translate('bestValue', language)}</div>
+              <div className="flex justify-between items-baseline mb-2">
+                <div className="space-y-0.5">
+                  <span className="text-sm font-bold text-theme-secondary">{translate('premiumYearly', language)}</span>
+                  <p className="text-[9px] font-bold text-accent">{translate('save17', language)}</p>
+                </div>
+                <div>
+                  <span className="text-xl font-black text-theme-secondary">$99</span>
+                  <span className="text-[10px] font-bold text-theme-secondary opacity-40">/yr</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => onSubscribe('yearly')}
+                className="w-full py-2.5 bg-accent text-white rounded-xl font-bold text-xs hover:opacity-90 transition-all shadow-md shadow-accent/10 flex items-center justify-center gap-1"
+              >
+                {translate('getYearly', language)}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -848,14 +1391,14 @@ const SubscriptionModal: React.FC<{
               className="w-full py-4 bg-theme-secondary/5 border-2 border-theme-secondary/10 text-theme-secondary rounded-2xl font-bold hover:bg-theme-secondary/10 transition-all flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4 text-accent" />
-              Start 7-Day Free Trial
+              {translate('startTrialBtn', language)}
             </button>
-            <p className="text-[10px] text-center mt-3 text-theme-secondary opacity-40 font-medium">No commitment. Cancel anytime.</p>
+            <p className="text-[10px] text-center mt-3 text-theme-secondary opacity-40 font-medium">{translate('noCommit', language)}</p>
           </div>
         )}
 
         <div className="pt-6 flex flex-col items-center gap-3">
-          <p className="text-[9px] font-black text-theme-secondary opacity-20 uppercase tracking-[0.2em]">Featured On</p>
+          <p className="text-[9px] font-black text-theme-secondary opacity-20 uppercase tracking-[0.2em]">{translate('featuredOn', language)}</p>
           <a 
             href="https://www.producthunt.com/products/glowguide-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-glowguide-beta" 
             target="_blank" 
@@ -1170,65 +1713,253 @@ const OnboardingModal: React.FC<{
   );
 };
 
-const LearnMoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => (
-  <Modal isOpen={isOpen} onClose={onClose} title="How this skincare assistant works">
-    <div className="space-y-8 text-theme-secondary">
-      <section>
-        <h4 className="font-bold text-lg mb-2">Private by default</h4>
-        <p className="opacity-80 leading-relaxed">
-          You can generate routines and analyze products without creating an account.
-          Your inputs and results are not stored unless you choose to sign up.
-        </p>
-      </section>
+const LearnMoreModal: React.FC<{ isOpen: boolean; onClose: () => void; language?: string }> = ({ isOpen, onClose, language = "en" }) => {
+  if (language === "es") {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Cómo funciona este asistente de cuidado de la piel">
+        <div className="space-y-8 text-theme-secondary">
+          <section>
+            <h4 className="font-bold text-lg mb-2">Privado por defecto</h4>
+            <p className="opacity-80 leading-relaxed">
+              Puedes generar rutinas y analizar productos sin crear una cuenta.
+              Tus datos y resultados no se almacenan a menos que elijas registrarte.
+            </p>
+          </section>
 
-      <section>
-        <h4 className="font-bold text-lg mb-2">What this tool does</h4>
-        <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
-          <li>This assistant helps you understand how skincare products and routines may fit different skin types and goals.</li>
-          <li>It focuses on ingredient function, routine compatibility, and barrier-friendly guidance.</li>
-        </ul>
-      </section>
+          <section>
+            <h4 className="font-bold text-lg mb-2">Qué hace esta herramienta</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>Este asistente te ayuda a entender cómo los productos y las rutinas se adaptan a diferentes tipos de piel y objetivos.</li>
+              <li>Se centra en la función de los ingredientes, la compatibilidad de la rutina y una guía amigable para la barrera de tu piel.</li>
+            </ul>
+          </section>
 
-      <section>
-        <h4 className="font-bold text-lg mb-2 text-red-500/80">What this tool does not do</h4>
-        <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
-          <li>It does not diagnose skin conditions.</li>
-          <li>It does not replace professional medical advice.</li>
-          <li>It does not recommend prescription treatments.</li>
-        </ul>
-      </section>
+          <section>
+            <h4 className="font-bold text-lg mb-2 text-red-500/80">Qué NO hace esta herramienta</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>No diagnostica afecciones de la piel.</li>
+              <li>No reemplaza el consejo médico profesional.</li>
+              <li>No recomienda tratamientos recetados.</li>
+            </ul>
+          </section>
 
-      <section>
-        <h4 className="font-bold text-lg mb-2">About product analysis</h4>
-        <p className="opacity-80 leading-relaxed">
-          Product analysis is based on the ingredient list you provide.
-          Results are educational and reflect common cosmetic science usage of ingredients.
-        </p>
-      </section>
+          <section>
+            <h4 className="font-bold text-lg mb-2">Sobre el análisis de productos</h4>
+            <p className="opacity-80 leading-relaxed">
+              El análisis de productos se basa en la lista de ingredientes que proporciones.
+              Los resultados son educativos y reflejan el uso común de los ingredientes en la ciencia cosmética.
+            </p>
+          </section>
 
-      <section>
-        <h4 className="font-bold text-lg mb-2">Why create an account</h4>
-        <div className="opacity-80 leading-relaxed space-y-2">
-          <p>Creating an account lets you:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>save routines and product analyses</li>
-            <li>track how your skin responds over time</li>
-            <li>customize your app experience</li>
-          </ul>
-          <p>You can use the app without an account.</p>
+          <section>
+            <h4 className="font-bold text-lg mb-2">Por qué crear una cuenta</h4>
+            <div className="opacity-80 leading-relaxed space-y-2">
+              <p>Crear una cuenta te permite:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>guardar rutinas y análisis de productos</li>
+                <li>hacer un seguimiento de cómo responde tu piel con el tiempo</li>
+                <li>personalizar tu experiencia en la aplicación</li>
+              </ul>
+              <p>Puedes usar la aplicación sin una cuenta.</p>
+            </div>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">Límites para el uso gratuito</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>Los usuarios anónimos pueden analizar hasta 3 productos cada 24 horas.</li>
+              <li>La generación de rutinas siempre es gratuita.</li>
+            </ul>
+          </section>
         </div>
-      </section>
+      </Modal>
+    );
+  }
 
-      <section>
-        <h4 className="font-bold text-lg mb-2">Limits for free use</h4>
-        <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
-          <li>Anonymous users can analyze up to 3 products per 24 hours.</li>
-          <li>Routine generation is always free.</li>
-        </ul>
-      </section>
-    </div>
-  </Modal>
-);
+  if (language === "fr") {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Comment fonctionne cet assistant de soin">
+        <div className="space-y-8 text-theme-secondary">
+          <section>
+            <h4 className="font-bold text-lg mb-2">Privé par défaut</h4>
+            <p className="opacity-80 leading-relaxed">
+              Vous pouvez générer des routines et analyser des produits sans créer de compte.
+              Vos saisies et résultats ne sont pas stockés à moins que vous ne décidiez de vous inscrire.
+            </p>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">Ce que fait cet outil</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>Cet assistant vous aide à comprendre comment les produits et routines de soin s'adaptent aux différents types de peau et objectifs.</li>
+              <li>Il se concentre sur la fonction des ingrédients, la compatibilité de la routine et un accompagnement respectueux de votre barrière cutanée.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2 text-red-500/80">Ce que cet outil ne fait pas</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>Il ne diagnostique aucun problème de peau.</li>
+              <li>Il ne remplace pas l'avis d'un professionnel de la santé.</li>
+              <li>Il ne recommande pas de traitements sur ordonnance.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">À propos de l'analyse des produits</h4>
+            <p className="opacity-80 leading-relaxed">
+              L'analyse des produits est basée sur la liste d'ingrédients que vous fournissez.
+              Les résultats sont éducatifs et reflètent l'usage courant des ingrédients dans la science cosmétique.
+            </p>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">Pourquoi créer un compte</h4>
+            <div className="opacity-80 leading-relaxed space-y-2">
+              <p>Créer un compte vous permet de :</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>sauvegarder vos routines et vos analyses de produits</li>
+                <li>suivre l'évolution de la réaction de votre peau au fil du temps</li>
+                <li>personnaliser votre expérience dans l'application</li>
+              </ul>
+              <p>Vous pouvez également utiliser l'application sans compte.</p>
+            </div>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">Limites d'utilisation gratuite</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>Les utilisateurs anonymes peuvent analyser jusqu'à 3 produits par 24 heures.</li>
+              <li>La génération de routine reste toujours gratuite.</li>
+            </ul>
+          </section>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (language === "ko") {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="스킨케어 도우미 활용 가이드">
+        <div className="space-y-8 text-theme-secondary">
+          <section>
+            <h4 className="font-bold text-lg mb-2">개인 정보 기본 보호</h4>
+            <p className="opacity-80 leading-relaxed">
+              계정을 만들지 않고도 루틴을 생성하고 상품 성분을 분석해 볼 수 있습니다.
+              회원을 가입하여 기록하기 전까지 입력된 데이터는 어디에도 기재되거나 저장되지 않습니다.
+            </p>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">주요 제공 기능</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>개인의 피부 타입이나 구체적인 고민에 맞춰 잘 어울리는 화장품과 루틴을 추천하고 조작법을 알려줍니다.</li>
+              <li>성분별 효능과 매칭 조화, 그리고 피부 장벽에 자극을 주지 않는 건강 가이드를 중점적으로 다룹니다.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2 text-red-500/80">의학적 면책 고지</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>본 웹앱은 피부 질병을 진단하지 않습니다.</li>
+              <li>의학 종사자 또는 피부과 전문의 임상 지도를 대신할 수 없습니다.</li>
+              <li>전문의 처방 의약품을 인위적으로 진척시키거나 권장하지 않습니다.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">성분 분석 안내</h4>
+            <p className="opacity-80 leading-relaxed">
+              화장품 전성분 목록을 바탕으로 분석이 처리됩니다.
+              제공 정보는 일반적인 화장품 성분학 연구 지식을 기반으로 제작된 교육용 참고 자료입니다.
+            </p>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">회원 가입 혜택</h4>
+            <div className="opacity-80 leading-relaxed space-y-2">
+              <p>가입 시 제공되는 혜택:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>생성된 홈루틴 및 개인별 화장품 성분 분석 무제한 영구 보관</li>
+                <li>피부 변화 반응 일일 정밀 기록 및 장기 데이터 추적</li>
+                <li>개인 프로필 커스텀 설정 및 트렌딩 지표 활성화</li>
+              </ul>
+              <p>가입하지 않고도 기본 기능을 자유롭게 이용할 수 있습니다.</p>
+            </div>
+          </section>
+
+          <section>
+            <h4 className="font-bold text-lg mb-2">무료 이용 제약 조건</h4>
+            <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+              <li>비가입 상태에서는 24시간 내 성분 분석(또는 바코드 스캔)이 일일 3회로 제한됩니다.</li>
+              <li>맞춤형 AI 루틴 자동 생성 서비스는 횟수 제한 없이 항상 100% 무료입니다.</li>
+            </ul>
+          </section>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="How this skincare assistant works">
+      <div className="space-y-8 text-theme-secondary">
+        <section>
+          <h4 className="font-bold text-lg mb-2">Private by default</h4>
+          <p className="opacity-80 leading-relaxed">
+            You can generate routines and analyze products without creating an account.
+            Your inputs and results are not stored unless you choose to sign up.
+          </p>
+        </section>
+
+        <section>
+          <h4 className="font-bold text-lg mb-2">What this tool does</h4>
+          <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+            <li>This assistant helps you understand how skincare products and routines may fit different skin types and goals.</li>
+            <li>It focuses on ingredient function, routine compatibility, and barrier-friendly guidance.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4 className="font-bold text-lg mb-2 text-red-500/80">What this tool does not do</h4>
+          <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+            <li>It does not diagnose skin conditions.</li>
+            <li>It does not replace professional medical advice.</li>
+            <li>It does not recommend prescription treatments.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4 className="font-bold text-lg mb-2">About product analysis</h4>
+          <p className="opacity-80 leading-relaxed">
+            Product analysis is based on the ingredient list you provide.
+            Results are educational and reflect common cosmetic science usage of ingredients.
+          </p>
+        </section>
+
+        <section>
+          <h4 className="font-bold text-lg mb-2">Why create an account</h4>
+          <div className="opacity-80 leading-relaxed space-y-2">
+            <p>Creating an account lets you:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>save routines and product analyses</li>
+              <li>track how your skin responds over time</li>
+              <li>customize your app experience</li>
+            </ul>
+            <p>You can use the app without an account.</p>
+          </div>
+        </section>
+
+        <section>
+          <h4 className="font-bold text-lg mb-2">Limits for free use</h4>
+          <ul className="list-disc pl-5 space-y-2 opacity-80 leading-relaxed">
+            <li>Anonymous users can analyze up to 3 products per 24 hours.</li>
+            <li>Routine generation is always free.</li>
+          </ul>
+        </section>
+      </div>
+    </Modal>
+  );
+};
 
 const PrivacyPolicyModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => (
   <Modal isOpen={isOpen} onClose={onClose} title="Privacy Policy">
@@ -1290,7 +2021,7 @@ const PrivacyPolicyModal: React.FC<{ isOpen: boolean; onClose: () => void }> = (
 
       <section>
         <h4 className="font-bold text-lg mb-2">Third-party services</h4>
-        <p className="opacity-80">We use GlowGuide services to generate skincare guidance. Your inputs may be processed by those services solely to generate results.</p>
+        <p className="opacity-80">We use Klenly services to generate skincare guidance. Your inputs may be processed by those services solely to generate results.</p>
       </section>
 
       <section>
@@ -1301,7 +2032,7 @@ const PrivacyPolicyModal: React.FC<{ isOpen: boolean; onClose: () => void }> = (
 
       <section>
         <h4 className="font-bold text-lg mb-2">Contact</h4>
-        <p className="opacity-80">For questions about privacy, contact: privacy@glowguide.ai</p>
+        <p className="opacity-80">For questions about privacy, contact: privacy@klenly.ai</p>
       </section>
     </div>
   </Modal>
@@ -1378,8 +2109,9 @@ const RoutineBuilder: React.FC<{
   user: User | null, 
   onUpdateRoutine: (r: RoutineProduct[]) => void,
   onLogin: (u: User) => void,
-  onUpgrade: () => void
-}> = ({ user, onUpdateRoutine, onLogin, onUpgrade }) => {
+  onUpgrade: () => void,
+  language?: string
+}> = ({ user, onUpdateRoutine, onLogin, onUpgrade, language = "en" }) => {
   const [products, setProducts] = useState<RoutineProduct[]>(user?.routine || []);
   const [isAdding, setIsAdding] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<RoutineProduct>>({
@@ -1492,7 +2224,7 @@ const RoutineBuilder: React.FC<{
     setAnalyzing(true);
     setError(null);
     try {
-      const result = await geminiService.analyzeRoutine(products);
+      const result = await geminiService.analyzeRoutine(products, language);
       setAnalysis(result);
     } catch (err) {
       console.error(err);
@@ -1600,7 +2332,7 @@ const RoutineBuilder: React.FC<{
             <h4 className="text-sm font-bold text-theme-secondary">Analysis Failed</h4>
             <p className="text-sm text-theme-secondary opacity-80">
               {error.includes("503") || error.includes("high demand") || error.includes("UNAVAILABLE")
-                ? "The GlowGuide service is currently experiencing high demand. We've retried automatically, but if this persists, please try again in a few minutes."
+                ? "The Klenly service is currently experiencing high demand. We've retried automatically, but if this persists, please try again in a few minutes."
                 : error}
             </p>
           </div>
@@ -1646,7 +2378,7 @@ const RoutineBuilder: React.FC<{
           <div className="flex items-center justify-between mb-10">
             <div>
               <h3 className="text-2xl font-black text-theme-secondary mb-2 tracking-tight">Routine Conflict Analysis</h3>
-              <p className="text-xs font-bold opacity-40 uppercase tracking-widest">GlowGuide Ingredient Check</p>
+              <p className="text-xs font-bold opacity-40 uppercase tracking-widest">Klenly Ingredient Check</p>
             </div>
             <div className="flex items-center gap-6">
               {user && (
@@ -1674,6 +2406,7 @@ const RoutineBuilder: React.FC<{
             safety={analysis.safetyScore} 
             compatibility={analysis.compatibilityScore} 
             balance={analysis.balanceScore} 
+            language={language}
           />
 
           <div className="space-y-8">
@@ -1871,7 +2604,7 @@ const RoutineBuilder: React.FC<{
   );
 };
 
-const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> = ({ user, onUpgrade }) => {
+const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void, language?: string }> = ({ user, onUpgrade, language = "en" }) => {
   const [productA, setProductA] = useState({ name: "", ingredients: "" });
   const [productB, setProductB] = useState({ name: "", ingredients: "" });
   const [loading, setLoading] = useState(false);
@@ -1936,7 +2669,7 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
     setLoading(true);
     setError(null);
     try {
-      const data = await geminiService.compareProducts(productA, productB);
+      const data = await geminiService.compareProducts(productA, productB, language);
       setResult(data);
       if (user) {
         await api.saveComparison(user.id, { productA, productB, result: data });
@@ -2186,7 +2919,7 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
                   <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
                     <Lightbulb className="w-5 h-5 text-accent" />
                   </div>
-                  <h4 className="text-2xl font-bold text-theme-secondary">GlowGuide Insights</h4>
+                  <h4 className="text-2xl font-bold text-theme-secondary">Klenly Insights</h4>
                 </div>
                 
                 <div className="grid gap-6">
@@ -2263,7 +2996,7 @@ const ProductComparator: React.FC<{ user: User | null, onUpgrade: () => void }> 
   );
 };
 
-const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = ({ onStartRoutine, onLearnMore }) => (
+const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void, language?: string }> = ({ onStartRoutine, onLearnMore, language = "en" }) => (
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -2271,23 +3004,23 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = 
   >
     <div className="text-center mb-16">
       <h1 className="text-5xl font-bold text-theme-secondary tracking-tight mb-6">
-        Your skin, <span className="opacity-70">simplified.</span>
+        {translate('homeTitle1', language)} <span className="opacity-70">{translate('homeTitle2', language)}</span>
       </h1>
       <p className="text-xl text-theme-secondary opacity-80 mb-10 leading-relaxed">
-        Neutral, science-backed skincare guidance. Generate routines or analyze ingredients without the marketing hype.
+        {translate('homeDesc', language)}
       </p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
         <button 
           onClick={onStartRoutine}
           className="px-8 py-4 bg-theme-primary border-2 border-theme-secondary text-theme-secondary rounded-2xl font-semibold hover:bg-theme-secondary/5 transition-all flex items-center justify-center gap-2 shadow-md shadow-theme-secondary/5"
         >
-          Start Free Routine <ArrowRight className="w-5 h-5" />
+          {translate('startFreeRoutine', language)} <ArrowRight className="w-5 h-5" />
         </button>
         <button 
           onClick={onLearnMore}
           className="px-8 py-4 bg-theme-primary border-2 border-theme-secondary/10 text-theme-secondary opacity-80 rounded-2xl font-semibold hover:bg-theme-secondary/5 transition-all"
         >
-          Learn More
+          {translate('learnMore', language)}
         </button>
       </div>
 
@@ -2299,7 +3032,7 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = 
           className="transition-transform hover:scale-105 active:scale-95 duration-300"
         >
           <img 
-            alt="GlowGuide Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
+            alt="Klenly Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
             width="250" 
             height="54" 
             src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1126955&theme=light&t=1776542664167"
@@ -2311,38 +3044,38 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void }> = 
   </motion.div>
 );
 
-const RoutineScoreBreakdown = ({ safety, compatibility, balance }: { safety: number, compatibility: number, balance: number }) => (
+const RoutineScoreBreakdown = ({ safety, compatibility, balance, language = "en" }: { safety: number, compatibility: number, balance: number, language?: string }) => (
   <div className="grid grid-cols-2 xs:grid-cols-3 gap-3 sm:gap-4 mb-8">
     <div className="p-3 sm:p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group">
       <div className="flex items-center gap-1 mb-1">
-        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">Safety</span>
+        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">{translate('safety', language)}</span>
         <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-30" />
       </div>
       <div className="text-xl sm:text-2xl font-black text-theme-secondary">{safety}</div>
       <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
-        Measures the lack of harsh ingredient combinations and overall formulation safety.
+        {translate('safetyTooltip', language)}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-theme-secondary"></div>
       </div>
     </div>
     <div className="p-3 sm:p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group">
       <div className="flex items-center gap-1 mb-1">
-        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">Compatibility</span>
+        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">{translate('compatibility', language)}</span>
         <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-30" />
       </div>
       <div className="text-xl sm:text-2xl font-black text-theme-secondary">{compatibility}</div>
       <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
-        How well your products work together without neutralizing each other or causing irritation.
+        {translate('compatibilityTooltip', language)}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-theme-secondary"></div>
       </div>
     </div>
     <div className="p-3 sm:p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 flex flex-col items-center justify-center relative group col-span-2 xs:col-span-1">
       <div className="flex items-center gap-1 mb-1">
-        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">Balance</span>
+        <span className="text-[9px] sm:text-[10px] font-black opacity-40 uppercase tracking-widest">{translate('balance', language)}</span>
         <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-30" />
       </div>
       <div className="text-xl sm:text-2xl font-black text-theme-secondary">{balance}</div>
       <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-theme-secondary text-theme-primary rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 text-[10px] leading-relaxed shadow-xl text-center">
-        The ratio of active treatments to hydrating/soothing barrier support.
+        {translate('balanceTooltip', language)}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-theme-secondary"></div>
       </div>
     </div>
@@ -2354,7 +3087,9 @@ const RoutineGenerator: React.FC<{
   onUpdateRoutine: (routine: RoutineProduct[]) => void;
   onLogin: (user: User) => void;
   onUpgrade: () => void;
-}> = ({ user, onUpdateRoutine, onLogin, onUpgrade }) => {
+  savedRoutinesCount?: number;
+  language?: string;
+}> = ({ user, onUpdateRoutine, onLogin, onUpgrade, savedRoutinesCount = 0, language = "en" }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RoutineResponse | null>(null);
@@ -2422,7 +3157,7 @@ const RoutineGenerator: React.FC<{
     setLoading(true);
     setSaveSuccess(false);
     try {
-      const data = await geminiService.generateRoutine(formData);
+      const data = await geminiService.generateRoutine(formData, language);
       setResult(data);
     } catch (err) {
       console.error(err);
@@ -2449,8 +3184,9 @@ const RoutineGenerator: React.FC<{
       return;
     }
 
-    if (user.tier === 'free' && user.routine && user.routine.length > 0 && !EARLY_ACCESS_MODE) {
-      alert("Free accounts can only save 1 routine. Upgrade to Premium for unlimited saves!");
+    if (user.tier === 'free' && savedRoutinesCount >= 1 && !EARLY_ACCESS_MODE) {
+      alert("Free accounts can only save 1 routine in history. Upgrade to Premium for unlimited saves!");
+      onUpgrade();
       return;
     }
 
@@ -2493,7 +3229,7 @@ const RoutineGenerator: React.FC<{
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto py-8 px-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
-            <h2 className="text-4xl font-bold text-theme-secondary mb-2">Your GlowGuide Routine</h2>
+            <h2 className="text-4xl font-bold text-theme-secondary mb-2">Your Klenly Routine</h2>
             <p className="text-theme-secondary opacity-50 font-medium">Personalized for your skin profile</p>
           </div>
           <div className="flex items-center gap-4">
@@ -2529,6 +3265,7 @@ const RoutineGenerator: React.FC<{
           safety={result.safetyScore} 
           compatibility={result.compatibilityScore} 
           balance={result.balanceScore} 
+          language={language}
         />
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -2599,7 +3336,7 @@ const RoutineGenerator: React.FC<{
               <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
                 <Lightbulb className="w-5 h-5 text-accent" />
               </div>
-              <h4 className="text-2xl font-bold text-theme-secondary">GlowGuide Insights</h4>
+              <h4 className="text-2xl font-bold text-theme-secondary">Klenly Insights</h4>
             </div>
             
             <div className="grid gap-6">
@@ -2657,7 +3394,7 @@ const RoutineGenerator: React.FC<{
       <div className="mb-12">
         <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Routine Generator</h2>
         <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">
-          Answer a few questions and GlowGuide will generate a skincare routine tailored to your skin type, concerns, and current products.
+          Answer a few questions and Klenly will generate a skincare routine tailored to your skin type, concerns, and current products.
         </p>
       </div>
 
@@ -2670,7 +3407,7 @@ const RoutineGenerator: React.FC<{
               {error.includes("API key not valid") 
                 ? "The Gemini API key is invalid or missing. Please ensure your API key is correctly configured in the AI Studio secrets." 
                 : error.includes("503") || error.includes("high demand") || error.includes("UNAVAILABLE")
-                ? "The GlowGuide service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
+                ? "The Klenly service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
                 : error}
             </p>
           </div>
@@ -2808,24 +3545,18 @@ const SkinTypeGuide = () => {
   const current = guideData[activeSkinType as keyof typeof guideData];
 
   return (
-    <div className="mt-16 p-8 bg-theme-secondary/5 rounded-[40px] border border-theme-secondary/10 overflow-hidden relative">
-      {/* Decorative background element */}
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
-      
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
+    <div className="overflow-hidden relative max-w-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10 pb-4 border-b border-theme-secondary/5">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">Knowledge Base</span>
-          </div>
-          <h4 className="text-3xl font-bold text-theme-secondary mb-2 tracking-tight">Skin Compatibility Guide</h4>
-          <p className="text-sm text-theme-secondary opacity-60 max-w-sm">Learn what ingredients work best for your unique skin profile.</p>
+          <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em] block mb-1">Knowledge Base</span>
+          <p className="text-xs text-theme-secondary opacity-60 max-w-xs leading-normal">Learn what ingredients work best for your unique skin profile.</p>
         </div>
-        <div className="flex p-1 bg-theme-primary/50 backdrop-blur-sm rounded-2xl border border-theme-secondary/10">
+        <div className="flex p-0.5 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/10 w-full sm:w-auto overflow-x-auto">
           {Object.keys(guideData).map((type) => (
             <button
               key={type}
               onClick={() => setActiveSkinType(type)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSkinType === type ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-theme-secondary opacity-40 hover:opacity-100'}`}
+              className={`flex-1 sm:flex-initial text-center px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSkinType === type ? 'bg-accent text-white shadow-md shadow-accent/15' : 'text-theme-secondary opacity-50 hover:opacity-100'}`}
             >
               {type}
             </button>
@@ -2835,24 +3566,24 @@ const SkinTypeGuide = () => {
 
       <motion.div
         key={activeSkinType}
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="grid md:grid-cols-2 gap-10 relative z-10"
+        className="grid sm:grid-cols-2 gap-6 relative z-10"
       >
-        <div className="space-y-8">
-          <div className="p-8 bg-theme-primary rounded-3xl border border-theme-secondary/5 shadow-sm">
-            <h5 className="font-bold text-theme-secondary text-lg mb-3 tracking-tight">{current.title}</h5>
-            <p className="text-base text-theme-secondary opacity-70 leading-relaxed font-medium">{current.description}</p>
+        <div className="space-y-6">
+          <div className="p-5 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/5">
+            <h5 className="font-bold text-theme-secondary text-base mb-2 tracking-tight">{current.title}</h5>
+            <p className="text-xs text-theme-secondary opacity-75 leading-relaxed font-semibold">{current.description}</p>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-2 ml-1">
               <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-              <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Ideal Ingredients</div>
+              <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Ideal Ingredients</div>
             </div>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap gap-2">
               {current.good.map((ing) => (
-                <span key={ing} className="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[11px] font-bold rounded-2xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                <span key={ing} className="px-3 py-1.5 bg-emerald-500/5 text-emerald-500 text-[10px] font-bold rounded-xl border border-emerald-500/15 hover:bg-emerald-500/10 transition-colors">
                   {ing}
                 </span>
               ))}
@@ -2860,26 +3591,26 @@ const SkinTypeGuide = () => {
           </div>
         </div>
 
-        <div className="space-y-8">
-          <div className="space-y-4">
+        <div className="space-y-6">
+          <div className="space-y-3">
             <div className="flex items-center gap-2 ml-1">
               <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-              <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Avoid / Use Caution</div>
+              <div className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Avoid / Use Caution</div>
             </div>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap gap-2">
               {current.bad.map((ing) => (
-                <span key={ing} className="px-4 py-2 bg-rose-500/10 text-rose-500 text-[11px] font-bold rounded-2xl border border-rose-500/20 hover:bg-rose-500/20 transition-colors">
+                <span key={ing} className="px-3 py-1.5 bg-rose-500/5 text-rose-500 text-[10px] font-bold rounded-xl border border-rose-500/15 hover:bg-rose-500/10 transition-colors">
                   {ing}
                 </span>
               ))}
             </div>
           </div>
 
-          <div className="p-6 bg-theme-secondary/5 rounded-3xl border border-theme-secondary/5">
-            <div className="flex items-start gap-3">
-              <Info className="w-4 h-4 text-theme-secondary opacity-40 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-theme-secondary opacity-50 leading-relaxed font-medium">
-                Note: Skin reactions are highly individual. These are general recommendations based on dermatological consensus. Always patch test new products for 24-48 hours before full application.
+          <div className="p-4 bg-theme-secondary/5 rounded-2xl border border-theme-secondary/5">
+            <div className="flex items-start gap-2.5">
+              <Info className="w-3.5 h-3.5 text-theme-secondary opacity-40 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-theme-secondary opacity-50 leading-relaxed font-semibold">
+                Note: Skin reactions are highly individual. recommendations based on consensus. Always patch test.
               </p>
             </div>
           </div>
@@ -2895,8 +3626,10 @@ const IngredientAnalyzer: React.FC<{
   setActiveTab: (t: string) => void,
   onUpdateRoutine: (r: RoutineProduct[]) => void,
   onLogin: (u: User) => void,
-  onUpgrade: () => void
-}> = ({ user, anonClientId, setActiveTab, onUpdateRoutine, onLogin, onUpgrade }) => {
+  onUpgrade: () => void,
+  savedAnalysesCount?: number,
+  language?: string
+}> = ({ user, anonClientId, setActiveTab, onUpdateRoutine, onLogin, onUpgrade, savedAnalysesCount = 0, language = "en" }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResponse | null>(null);
@@ -2911,6 +3644,7 @@ const IngredientAnalyzer: React.FC<{
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isFetchingBarcode, setIsFetchingBarcode] = useState(false);
   const [showManualFields, setShowManualFields] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   useEffect(() => {
     const fetchUsage = async () => {
@@ -2949,7 +3683,7 @@ const IngredientAnalyzer: React.FC<{
       const data = await geminiService.analyzeIngredients({
         ...currentData,
         skinType: user?.skinType
-      });
+      }, language);
       await api.logUsage(anonClientId, user?.id || null);
       const updatedUsage = await api.checkUsage(anonClientId, user?.id || null);
       setUsageCount(updatedUsage.count ?? 0);
@@ -2977,6 +3711,11 @@ const IngredientAnalyzer: React.FC<{
 
   const handleSave = async () => {
     if (!user || !result) return;
+    if (user.tier === 'free' && savedAnalysesCount >= 3 && !EARLY_ACCESS_MODE) {
+      alert("Free accounts can only save up to 3 ingredient analyses. Upgrade to Premium for unlimited saves!");
+      onUpgrade();
+      return;
+    }
     setIsSaving(true);
     try {
       await api.saveAnalysis(user.id, { productName: formData.productName, ...result });
@@ -3134,7 +3873,7 @@ const IngredientAnalyzer: React.FC<{
               <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
                 <Lightbulb className="w-5 h-5 text-accent" />
               </div>
-              <h4 className="text-2xl font-bold text-theme-secondary">GlowGuide Insights</h4>
+              <h4 className="text-2xl font-bold text-theme-secondary">Klenly Insights</h4>
             </div>
             
             <div className="grid gap-6">
@@ -3271,10 +4010,20 @@ const IngredientAnalyzer: React.FC<{
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-8 px-6">
-      <div className="mb-12 flex justify-between items-start">
+      <div className="mb-12 flex justify-between items-start gap-4">
         <div>
-          <h2 className="text-4xl font-bold text-accent mb-4 tracking-tight">Ingredient Analyzer</h2>
-          <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Paste an ingredient list to understand skin compatibility and routine fit.</p>
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-4xl font-bold text-accent tracking-tight">Ingredient Analyzer</h2>
+            <button
+              type="button"
+              onClick={() => setShowGuideModal(true)}
+              title="Skin Compatibility Guide"
+              className="p-2 bg-accent/10 hover:bg-accent/20 text-accent rounded-full transition-all flex items-center justify-center shrink-0 border border-accent/10 hover:scale-105"
+            >
+              <ShieldCheck className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-lg text-theme-secondary opacity-60 leading-relaxed">Paste or scan an ingredient list to understand skin compatibility and routine fit.</p>
         </div>
         <div className="flex flex-col items-end opacity-60 hover:opacity-100 transition-opacity shrink-0">
           <span className="text-[10px] font-bold text-theme-secondary opacity-50 uppercase tracking-widest mb-1">Daily Limit</span>
@@ -3318,7 +4067,7 @@ const IngredientAnalyzer: React.FC<{
                   {error.includes("API key not valid") 
                     ? "The Gemini API key is invalid or missing. Please ensure your API key is correctly configured in the AI Studio secrets." 
                     : error.includes("503") || error.includes("high demand") || error.includes("UNAVAILABLE")
-                    ? "The GlowGuide service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
+                    ? "The Klenly service is currently experiencing high demand. We're retrying automatically, but if this persists, please try again in a few minutes."
                     : error}
                 </p>
               )}
@@ -3438,7 +4187,26 @@ const IngredientAnalyzer: React.FC<{
         </button>
       </form>
 
-      <SkinTypeGuide />
+      <div className="mt-8 flex justify-center items-center">
+        <button
+          type="button"
+          onClick={() => setShowGuideModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-theme-secondary/5 hover:bg-theme-secondary/10 border-2 border-theme-secondary/10 hover:border-accent/30 rounded-full text-xs font-semibold text-theme-secondary opacity-70 hover:opacity-100 transition-all duration-300 shadow-sm"
+        >
+          <ShieldCheck className="w-4 h-4 text-accent" />
+          <span>Skin Compatibility Guide</span>
+        </button>
+      </div>
+
+      <Modal 
+        isOpen={showGuideModal} 
+        onClose={() => setShowGuideModal(false)} 
+        title="Skin Compatibility Guide"
+      >
+        <div className="py-2">
+          <SkinTypeGuide />
+        </div>
+      </Modal>
     </motion.div>
   );
 };
@@ -3455,12 +4223,13 @@ const THEMES = [
 ];
 
 const NotificationSettings = ({ user, onUpdate }: { user: User, onUpdate: (u: User) => void }) => {
+  const isPremium = user.tier === 'premium' || EARLY_ACCESS_MODE;
   const [prefs, setPrefs] = useState(user.notificationPreferences || {
-    routineReminders: true,
-    progressCuriosity: true,
-    insightAlerts: true,
-    streakMilestones: true,
-    skinTrackingNudges: true
+    routineReminders: isPremium,
+    progressCuriosity: isPremium,
+    insightAlerts: isPremium,
+    streakMilestones: isPremium,
+    skinTrackingNudges: isPremium
   });
 
   const handleToggle = (key: keyof typeof prefs) => {
@@ -3479,6 +4248,16 @@ const NotificationSettings = ({ user, onUpdate }: { user: User, onUpdate: (u: Us
 
   return (
     <div className="space-y-4">
+      {!isPremium && (
+        <div className="p-4 bg-accent/5 border border-accent/20 rounded-2xl mb-2 text-center">
+          <p className="text-xs font-bold text-theme-secondary flex items-center justify-center gap-1.5">
+            <Award className="w-4 h-4 text-accent" /> Premium Feature
+          </p>
+          <p className="text-[10px] text-theme-secondary opacity-60 mt-1">
+            Unlock Klenly's advanced notification and reminder system to stay consistent.
+          </p>
+        </div>
+      )}
       {options.map((opt) => (
         <div key={opt.key} className="flex items-start justify-between p-4 bg-theme-primary rounded-2xl border border-theme-secondary/10">
           <div className="flex-1 pr-4">
@@ -3486,8 +4265,14 @@ const NotificationSettings = ({ user, onUpdate }: { user: User, onUpdate: (u: Us
             <div className="text-[10px] opacity-50 mt-1 leading-relaxed">{opt.description}</div>
           </div>
           <button 
-            onClick={() => handleToggle(opt.key as keyof typeof prefs)}
-            className={`w-10 h-6 rounded-full transition-all relative shrink-0 ${prefs[opt.key as keyof typeof prefs] ? 'bg-accent' : 'bg-theme-secondary/20'}`}
+            onClick={() => {
+              if (!isPremium) {
+                alert("The notification and reminder system is a premium feature. Please upgrade to Pro inside the Membership section!");
+                return;
+              }
+              handleToggle(opt.key as keyof typeof prefs);
+            }}
+            className={`w-10 h-6 rounded-full transition-all relative shrink-0 ${prefs[opt.key as keyof typeof prefs] ? 'bg-accent' : 'bg-theme-secondary/20'} ${!isPremium && 'opacity-50 cursor-not-allowed'}`}
           >
             <motion.div 
               animate={{ x: prefs[opt.key as keyof typeof prefs] ? 18 : 2 }}
@@ -3567,7 +4352,7 @@ const ThemeSettings: React.FC<{ user: User, darkMode: boolean, onUpdateTheme: (t
   );
 };
 
-const DetailModal = ({ item, type, onClose }: { item: any, type: 'routine' | 'analysis' | 'comparison', onClose: () => void }) => {
+const DetailModal = ({ item, type, onClose, language = "en" }: { item: any, type: 'routine' | 'analysis' | 'comparison', onClose: () => void, language?: string }) => {
   if (!item) return null;
 
   return (
@@ -3603,6 +4388,7 @@ const DetailModal = ({ item, type, onClose }: { item: any, type: 'routine' | 'an
                   safety={item.safetyScore} 
                   compatibility={item.compatibilityScore} 
                   balance={item.balanceScore} 
+                  language={language}
                 />
               )}
               <div className="p-6 bg-theme-secondary/5 rounded-3xl">
@@ -3615,7 +4401,7 @@ const DetailModal = ({ item, type, onClose }: { item: any, type: 'routine' | 'an
               </div>
               {item.tips && (
                 <div className="p-6 bg-theme-secondary/5 rounded-3xl">
-                  <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">GlowGuide Tips</h4>
+                  <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">Klenly Tips</h4>
                   <ul className="space-y-2">
                     {item.tips.map((tip: string, i: number) => (
                       <li key={i} className="text-sm text-theme-secondary opacity-70 flex gap-2">
@@ -3635,6 +4421,7 @@ const DetailModal = ({ item, type, onClose }: { item: any, type: 'routine' | 'an
                   safety={item.safetyScore} 
                   compatibility={item.compatibilityScore} 
                   balance={item.balanceScore} 
+                  language={language}
                 />
               )}
               <div className="grid grid-cols-2 gap-4">
@@ -3999,7 +4786,10 @@ const RoutineTracker: React.FC<{
   );
 };
 
-const SkinTrendsChart: React.FC<{ trends: SkinLog[] }> = ({ trends }) => {
+const SkinTrendsChart: React.FC<{ trends: SkinLog[]; user?: User | null; onUpgrade?: () => void }> = ({ trends, user, onUpgrade }) => {
+  const [activeFilter, setActiveFilter] = useState<'all' | 'acne' | 'oiliness' | 'dryness' | 'irritation'>('all');
+  const isPremium = user?.tier === 'premium' || EARLY_ACCESS_MODE;
+
   const chartData = trends.map(log => ({
     date: new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
     Acne: log.acne,
@@ -4008,14 +4798,135 @@ const SkinTrendsChart: React.FC<{ trends: SkinLog[] }> = ({ trends }) => {
     Irritation: log.irritation
   }));
 
+  const annotations = React.useMemo(() => {
+    if (!isPremium || chartData.length === 0) return [];
+
+    const list: Array<{ date: string; label: string; desc: string; type: 'routine' | 'product' }> = [];
+    const datesInChart = new Set(chartData.map(d => d.date));
+
+    // 1. Map real saved routines
+    if (user?.savedRoutines) {
+      user.savedRoutines.forEach((r: any) => {
+        const rDate = new Date(r.createdAt || r.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' });
+        if (datesInChart.has(rDate)) {
+          list.push({
+            date: rDate,
+            label: "Started Routine",
+            desc: r.name || "Custom generated skincare routine",
+            type: "routine"
+          });
+        }
+      });
+    }
+
+    // 2. High-fidelity premium event milestones based on trend peaks
+    if (chartData.length >= 3) {
+      let maxAcneIdx = 0;
+      let maxDrynessIdx = 0;
+
+      for (let i = 0; i < chartData.length; i++) {
+        if (chartData[i].Acne > chartData[maxAcneIdx].Acne) maxAcneIdx = i;
+        if (chartData[i].Dryness > chartData[maxDrynessIdx].Dryness) maxDrynessIdx = i;
+      }
+
+      if (maxAcneIdx > 0 && maxAcneIdx < chartData.length) {
+        const peakAcneDate = chartData[maxAcneIdx - 1].date;
+        list.push({
+          date: peakAcneDate,
+          label: "Switched Sunscreen",
+          desc: "Changed to physical non-comedogenic SPF 50 shield",
+          type: "product"
+        });
+      }
+
+      if (maxDrynessIdx > 0 && maxDrynessIdx !== maxAcneIdx && maxDrynessIdx < chartData.length) {
+        const dryDate = chartData[maxDrynessIdx].date;
+        list.push({
+          date: dryDate,
+          label: "Added Hydra Essence",
+          desc: "Introduced triple hyaluronic acid serum fluid",
+          type: "routine"
+        });
+      }
+
+      if (list.length === 0) {
+        const midIdx = Math.floor(chartData.length / 2);
+        list.push({
+          date: chartData[midIdx].date,
+          label: "Started New Routine",
+          desc: "Adjusted active ingredients to balance hydration",
+          type: "routine"
+        });
+      }
+    }
+
+    const uniqueList: typeof list = [];
+    const seenDates = new Set<string>();
+    for (const ann of list) {
+      if (!seenDates.has(ann.date)) {
+        seenDates.add(ann.date);
+        uniqueList.push(ann);
+      }
+    }
+    return uniqueList;
+  }, [isPremium, chartData, user?.savedRoutines]);
+
+  const filters = [
+    { key: 'all' as const, label: 'All metrics', color: '#6366f1', isPremiumOnly: false },
+    { key: 'acne' as const, label: 'Acne only', color: '#ef4444', isPremiumOnly: true },
+    { key: 'oiliness' as const, label: 'Oiliness only', color: '#3b82f6', isPremiumOnly: true },
+    { key: 'dryness' as const, label: 'Dryness only', color: '#10b981', isPremiumOnly: true },
+    { key: 'irritation' as const, label: 'Irritation only', color: '#f59e0b', isPremiumOnly: true },
+  ];
+
+  const handleFilterClick = (key: 'all' | 'acne' | 'oiliness' | 'dryness' | 'irritation') => {
+    if (key !== 'all' && !isPremium) {
+      if (onUpgrade) {
+        onUpgrade();
+      } else {
+        alert("Skin condition trend filtering is a Klenly Pro feature. Please upgrade to unlock isolated skincare progress tracking!");
+      }
+      return;
+    }
+    setActiveFilter(key);
+  };
+
   return (
     <section className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h3 className="text-xl font-bold text-accent flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-accent" /> Skin Progress
           </h3>
           <p className="text-xs text-theme-secondary opacity-40 uppercase tracking-widest mt-1">Last 30 days trend</p>
+        </div>
+
+        {/* Filter Buttons Option Grid (Premium only indicator tags) */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-theme-secondary/5 rounded-2xl w-fit">
+          {filters.map((filter) => {
+            const isActive = activeFilter === filter.key;
+            return (
+              <button
+                key={filter.key}
+                type="button"
+                onClick={() => handleFilterClick(filter.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
+                  isActive
+                    ? "bg-theme-primary text-theme-secondary shadow-md border border-theme-secondary/5"
+                    : "text-theme-secondary/50 hover:text-theme-secondary/80 hover:bg-theme-secondary/5"
+                }`}
+              >
+                <span 
+                  className="w-2.5 h-2.5 rounded-full transition-transform duration-300 transform scale-100 hover:scale-125" 
+                  style={{ backgroundColor: filter.color }}
+                />
+                <span className="text-[11px]">{filter.label}</span>
+                {filter.isPremiumOnly && !isPremium && (
+                  <Award className="w-3.5 h-3.5 text-accent shrink-0" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -4025,12 +4936,20 @@ const SkinTrendsChart: React.FC<{ trends: SkinLog[] }> = ({ trends }) => {
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorAcne" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                 </linearGradient>
                 <linearGradient id="colorOil" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorDryness" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorIrritation" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.1} />
@@ -4055,10 +4974,56 @@ const SkinTrendsChart: React.FC<{ trends: SkinLog[] }> = ({ trends }) => {
                 }}
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} />
-              <Area type="monotone" dataKey="Acne" stroke="#ef4444" fillOpacity={1} fill="url(#colorAcne)" strokeWidth={2} />
-              <Area type="monotone" dataKey="Oiliness" stroke="#3b82f6" fillOpacity={1} fill="url(#colorOil)" strokeWidth={2} />
-              <Area type="monotone" dataKey="Dryness" stroke="#10b981" fillOpacity={0} strokeWidth={2} />
-              <Area type="monotone" dataKey="Irritation" stroke="#f59e0b" fillOpacity={0} strokeWidth={2} />
+              {(activeFilter === 'all' || activeFilter === 'acne') && (
+                <Area type="monotone" name="Acne" dataKey="Acne" stroke="#ef4444" fillOpacity={1} fill="url(#colorAcne)" strokeWidth={activeFilter === 'all' ? 2 : 3} />
+              )}
+              {(activeFilter === 'all' || activeFilter === 'oiliness') && (
+                <Area type="monotone" name="Oiliness" dataKey="Oiliness" stroke="#3b82f6" fillOpacity={1} fill="url(#colorOil)" strokeWidth={activeFilter === 'all' ? 2 : 3} />
+              )}
+              {(activeFilter === 'all' || activeFilter === 'dryness') && (
+                <Area type="monotone" name="Dryness" dataKey="Dryness" stroke="#10b981" fillOpacity={activeFilter === 'all' ? 0 : 1} fill="url(#colorDryness)" strokeWidth={activeFilter === 'all' ? 2 : 3} />
+              )}
+              {(activeFilter === 'all' || activeFilter === 'irritation') && (
+                <Area type="monotone" name="Irritation" dataKey="Irritation" stroke="#f59e0b" fillOpacity={activeFilter === 'all' ? 0 : 1} fill="url(#colorIrritation)" strokeWidth={activeFilter === 'all' ? 2 : 3} />
+              )}
+              {isPremium && annotations.map((ann, idx) => (
+                <ReferenceLine
+                  key={idx}
+                  x={ann.date}
+                  stroke={ann.type === 'routine' ? '#818cf8' : '#fb7185'}
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={({ viewBox }) => {
+                    const { x, y } = viewBox;
+                    const isRightSide = x > 380;
+                    const rectX = isRightSide ? x - 146 : x + 10;
+                    const textX = rectX + 8;
+                    return (
+                      <g className="select-none pointer-events-none">
+                        <circle cx={x} cy={30} r={4.5} fill={ann.type === 'routine' ? '#6366f1' : '#f43f5e'} />
+                        <circle cx={x} cy={30} r={8} stroke={ann.type === 'routine' ? '#6366f1' : '#f43f5e'} strokeWidth={1.5} fill="none" opacity={0.3} />
+                        <rect 
+                          x={rectX} 
+                          y={16} 
+                          width={136} 
+                          height={28} 
+                          rx={8} 
+                          fill="var(--theme-primary)" 
+                          stroke="rgba(var(--theme-secondary-rgb), 0.1)" 
+                          strokeWidth={1} 
+                          style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.05))" }}
+                        />
+                        <text x={textX} y={26} fill="var(--theme-secondary)" fontSize={9} fontWeight="bold">
+                          {ann.label}
+                        </text>
+                        <text x={textX} y={37} fill="var(--theme-secondary)" fontSize={7.5} opacity={0.6}>
+                          {ann.desc}
+                        </text>
+                      </g>
+                    );
+                  }}
+                />
+              ))}
             </AreaChart>
           </ResponsiveContainer>
         ) : (
@@ -4069,6 +5034,30 @@ const SkinTrendsChart: React.FC<{ trends: SkinLog[] }> = ({ trends }) => {
           </div>
         )}
       </div>
+      {!isPremium && (
+        <div className="mt-8 p-4 bg-accent/5 border border-accent/10 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
+              <Award className="w-5 h-5 text-accent animate-pulse" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-theme-secondary flex items-center gap-1.5">
+                Unlock Timeline Milestones
+              </h4>
+              <p className="text-[11px] text-theme-secondary/60 leading-relaxed mt-0.5">
+                Pro members get automatic timeline annotations mapping routine changes, sunscreen switches, and active formula updates directly onto progress charts to monitor skin reactions.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onUpgrade}
+            className="px-4 py-2 bg-accent hover:opacity-95 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-accent/25 shrink-0"
+          >
+            Upgrade to Pro
+          </button>
+        </div>
+      )}
     </section>
   );
 };
@@ -4078,6 +5067,12 @@ const SkinHealthScore = ({ score, trend }: { score: number, trend: number }) => 
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
+
+  const scoreColor = score >= 70 
+    ? "text-emerald-500" 
+    : (score > 45 && score < 70) 
+      ? "text-amber-500" 
+      : "text-rose-500";
 
   return (
     <section className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-[32px] relative overflow-hidden shadow-sm">
@@ -4093,7 +5088,7 @@ const SkinHealthScore = ({ score, trend }: { score: number, trend: number }) => 
             </button>
           </h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className={`text-xs font-bold flex items-center gap-0.5 ${trend >= 0 ? 'text-accent' : 'text-rose-500'}`}>
+            <span className={`text-xs font-bold flex items-center gap-0.5 ${trend >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
               {trend >= 0 ? '+' : ''}{trend}
             </span>
@@ -4124,12 +5119,12 @@ const SkinHealthScore = ({ score, trend }: { score: number, trend: number }) => 
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: offset }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="text-accent"
+            className={scoreColor}
             strokeLinecap="round"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-black text-accent">{score}</span>
+          <span className={`text-3xl font-black ${scoreColor}`}>{score}</span>
           <span className="text-[8px] font-black opacity-30 uppercase tracking-widest">Health Index</span>
         </div>
       </div>
@@ -4168,12 +5163,18 @@ const CompactSkinHealthScore = ({ score, trend }: { score: number, trend: number
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
 
+  const scoreColor = score >= 70 
+    ? "text-emerald-500" 
+    : (score > 45 && score < 70) 
+      ? "text-amber-500" 
+      : "text-rose-500";
+
   return (
     <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl flex items-center justify-between shadow-sm">
       <div>
         <div className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">Skin Health</div>
-        <div className="text-3xl font-black text-accent">{score}%</div>
-        <div className={`text-[10px] font-bold flex items-center gap-0.5 mt-1 ${trend >= 0 ? 'text-accent' : 'text-rose-500'}`}>
+        <div className={`text-3xl font-black ${scoreColor}`}>{score}%</div>
+        <div className={`text-[10px] font-bold flex items-center gap-0.5 mt-1 ${trend >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
           {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
           {trend >= 0 ? '+' : ''}{trend}
         </div>
@@ -4200,12 +5201,12 @@ const CompactSkinHealthScore = ({ score, trend }: { score: number, trend: number
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: offset }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="text-accent"
+            className={scoreColor}
             strokeLinecap="round"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[10px] font-black text-theme-secondary opacity-40">{score}</span>
+          <span className={`text-[10px] font-black ${scoreColor}`}>{score}</span>
         </div>
       </div>
     </div>
@@ -4282,7 +5283,7 @@ const SavedItems = ({
                           <Trash className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">GlowGuide Generated</div>
+                      <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Klenly Generated</div>
                     </div>
                   </div>
                   <p className="text-xs text-theme-secondary opacity-60 line-clamp-2">{r.morningRoutine}</p>
@@ -4358,8 +5359,10 @@ const Dashboard: React.FC<{
   onUpdateProfile: (p: Partial<User>) => void,
   setActiveTab: (t: string) => void,
   onUpgrade: () => void,
-  onCancelSubscription: () => void
-}> = ({ user, darkMode, onLogin, onUpdateTheme, onUpdateProfile, setActiveTab, onUpgrade, onCancelSubscription }) => {
+  onCancelSubscription: () => void,
+  language?: string,
+  onUpdateLanguage: (lang: string) => void
+}> = ({ user, darkMode, onLogin, onUpdateTheme, onUpdateProfile, setActiveTab, onUpgrade, onCancelSubscription, language = "en", onUpdateLanguage }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<{ item: any, type: 'routine' | 'analysis' | 'comparison' } | null>(null);
@@ -4369,12 +5372,29 @@ const Dashboard: React.FC<{
     dryness: 2.2,
     irritation: 1.5
   });
+  const [zonesData, setZonesData] = useState(() => defaultZonesData());
+  const [logMethod, setLogMethod] = useState<"overall" | "map">("map");
+  const isPremiumUser = user?.tier === "premium" || EARLY_ACCESS_MODE;
+  const [premiumView, setPremiumView] = useState<"map" | "graph">("map");
+  const activeLogMethod = isPremiumUser ? logMethod : "overall";
   const [isSavingCheckIn, setIsSavingCheckIn] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempName, setTempName] = useState(user?.name || "");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [showCompatibility, setShowCompatibility] = useState(false);
+
+  const formatLastCheckIn = (dateStr?: string) => {
+    if (!dateStr) return "Never";
+    const d = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    
+    if (d.toDateString() === today.toDateString()) return "Today";
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
 
   const refreshData = () => {
     if (user && user.id) {
@@ -4394,6 +5414,23 @@ const Dashboard: React.FC<{
         dryness: data.lastCheckIn.dryness,
         irritation: data.lastCheckIn.irritation
       });
+      // Restore past face zone logs if available
+      if (data.lastCheckIn.zonesData) {
+        setZonesData(data.lastCheckIn.zonesData);
+        setLogMethod("map");
+      } else if (data.lastCheckIn.zones_data) {
+        try {
+          const parsed = typeof data.lastCheckIn.zones_data === "string"
+            ? JSON.parse(data.lastCheckIn.zones_data)
+            : data.lastCheckIn.zones_data;
+          if (parsed) {
+            setZonesData(parsed);
+            setLogMethod("map");
+          }
+        } catch (e) {
+          console.error("Error parsing zone face logs:", e);
+        }
+      }
     }
   }, [data?.lastCheckIn]);
 
@@ -4402,7 +5439,30 @@ const Dashboard: React.FC<{
     if (!user) return;
     setIsSavingCheckIn(true);
     try {
-      await api.logSkin(user.id, checkInData);
+      let finalCheckInData = { ...checkInData };
+      if (activeLogMethod === "map") {
+        const zonesKeys = Object.keys(zonesData) as Array<keyof typeof zonesData>;
+        let totalAcne = 0, totalOil = 0, totalDry = 0, totalIrr = 0;
+        zonesKeys.forEach(k => {
+          const zNode = zonesData[k] || { acne: 0, oiliness: 0, dryness: 0, irritation: 0 };
+          totalAcne += zNode.acne;
+          totalOil += zNode.oiliness;
+          totalDry += zNode.dryness;
+          totalIrr += zNode.irritation;
+        });
+        const count = zonesKeys.length || 1;
+        finalCheckInData = {
+          acne: parseFloat((totalAcne / count).toFixed(1)),
+          oiliness: parseFloat((totalOil / count).toFixed(1)),
+          dryness: parseFloat((totalDry / count).toFixed(1)),
+          irritation: parseFloat((totalIrr / count).toFixed(1))
+        };
+      }
+
+      await api.logSkin(user.id, {
+        ...finalCheckInData,
+        zonesData: activeLogMethod === "map" ? zonesData : null
+      });
       refreshData();
       alert("Daily check-in saved!");
     } catch (e) {
@@ -4451,31 +5511,52 @@ const Dashboard: React.FC<{
   };
 
   const getWeekDaysCompletions = () => {
-    // Show high consistency since today is logged to demonstrate 36 day streak
-    return [true, true, true, true, true, true, true];
+    const todayIdx = (() => {
+      const d = new Date().getDay();
+      return d === 0 ? 6 : d - 1; // 0 for Mon, 6 for Sun
+    })();
+    const isTodayCompleted = (() => {
+      if (!data) return true; // Default to true while fetching to look filled
+      const hasRoutineToday = data.lastRoutine && (
+        new Date(data.lastRoutine.created_at || data.lastRoutine.createdAt).toDateString() === new Date().toDateString()
+      );
+      const hasCheckInToday = data.lastCheckIn && (
+        new Date(data.lastCheckIn.created_at || data.lastCheckIn.createdAt).toDateString() === new Date().toDateString()
+      );
+      return !!(hasRoutineToday || hasCheckInToday);
+    })();
+
+    return Array.from({ length: 7 }, (_, i) => {
+      if (i < todayIdx) return true;
+      if (i === todayIdx) return isTodayCompleted;
+      return false; // Future days
+    });
   };
 
-  const totalDaysTracked = 36;
-  const streak = 36;
+  const isPremium = user?.tier === 'premium' || EARLY_ACCESS_MODE;
+  const maxDays = isPremium ? 90 : 30;
+  const totalDaysTracked = isPremium ? 36 : 24;
+  const streak = isPremium ? 12 : 5;
 
   const chartData = React.useMemo(() => {
     const list = [];
     const baseDate = new Date();
-    // Generate exactly 36 simulated items representing high-quality visual data
-    for (let i = 35; i >= 0; i--) {
+    const days = maxDays;
+    // Generate simulated items representing high-quality visual data
+    for (let i = days - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(baseDate.getDate() - i);
       
-      const progress = (35 - i) / 35; // 0 to 1
+      const progress = (days - 1 - i) / (days - 1 || 1); // 0 to 1
       
       // Hydration: starts around 45% (lower), climbs up gracefully to ~82% as skin barrier recovers
       const hydrationBase = 42 + (progress * 38); 
-      const hydrationNoise = Math.sin((35 - i) * 1.0) * 3 + Math.cos((35 - i) * 0.45) * 2;
+      const hydrationNoise = Math.sin((days - 1 - i) * 1.0) * 3 + Math.cos((days - 1 - i) * 0.45) * 2;
       let hydration = Math.round(Math.min(100, Math.max(0, hydrationBase + hydrationNoise)));
       
       // Acne: starts around 65% (moderate breakout), falls down steadily to ~18% with continuous tracking
       const acneBase = 65 - (progress * 46);
-      const acneNoise = Math.cos((35 - i) * 1.2) * 4 + Math.sin((35 - i) * 0.6) * 2;
+      const acneNoise = Math.cos((days - 1 - i) * 1.2) * 4 + Math.sin((days - 1 - i) * 0.6) * 2;
       let acne = Math.round(Math.min(100, Math.max(0, acneBase + acneNoise)));
 
       // Real-time link: let the latest day respond to current screen slider modifications!
@@ -4491,7 +5572,7 @@ const Dashboard: React.FC<{
       });
     }
     return list;
-  }, [checkInData.dryness, checkInData.acne]);
+  }, [checkInData.dryness, checkInData.acne, maxDays]);
 
   if (!user) {
     return (
@@ -4564,7 +5645,7 @@ const Dashboard: React.FC<{
             >
               <div className="p-6 pb-32">
                 <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-2xl font-bold text-accent">Settings</h2>
+                  <h2 className="text-2xl font-bold text-accent">{translate('settings', user?.language || language)}</h2>
                   <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-theme-secondary/10 rounded-xl">
                     <X className="w-6 h-6 text-theme-secondary" />
                   </button>
@@ -4574,17 +5655,17 @@ const Dashboard: React.FC<{
                 {/* Name Change */}
                 <section className="bg-theme-secondary/5 p-6 rounded-3xl border border-theme-secondary/10">
                   <h3 className="text-sm font-bold opacity-40 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <UserIcon className="w-4 h-4" /> Profile
+                    <UserIcon className="w-4 h-4" /> {translate('profile', user?.language || language)}
                   </h3>
                   <div className="space-y-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Email Address</label>
+                      <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">{translate('emailAddr', user?.language || language)}</label>
                       <div className="p-3 bg-theme-primary/50 border-2 border-theme-secondary/5 text-theme-secondary rounded-xl opacity-60 text-sm">
                         {user.email}
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">Display Name</label>
+                      <label className="text-[10px] font-black text-theme-secondary opacity-40 uppercase tracking-widest ml-1">{translate('displayName', user?.language || language)}</label>
                       <div className="flex gap-2">
                         <input 
                           type="text"
@@ -4598,36 +5679,72 @@ const Dashboard: React.FC<{
                           disabled={isUpdatingName || tempName === user.name}
                           className="px-4 bg-accent text-white rounded-xl font-bold disabled:opacity-50 transition-all text-sm"
                         >
-                          {isUpdatingName ? "..." : "Save"}
+                          {isUpdatingName ? "..." : translate('save', user?.language || language)}
                         </button>
                       </div>
                     </div>
                   </div>
                 </section>
 
+                {/* Language Selection */}
+                <CollapsibleSection title={translate('language', user?.language || language)} icon={Globe}>
+                  <div className="pt-4 space-y-2">
+                    {[
+                      { code: 'en', flag: '🇺🇸', name: 'English' },
+                      { code: 'es', flag: '🇪🇸', name: 'Español' },
+                      { code: 'fr', flag: '🇫🇷', name: 'Français' },
+                      { code: 'ko', flag: '🇰🇷', name: '한국어' }
+                    ].map((item) => (
+                      <button
+                        key={item.code}
+                        onClick={() => {
+                          const newLang = item.code;
+                          if (user) {
+                            onUpdateProfile({ language: newLang });
+                          }
+                          onUpdateLanguage(newLang);
+                        }}
+                        className={`w-full flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all text-xs font-bold ${
+                          (user?.language || language) === item.code
+                            ? 'bg-accent/10 border-accent text-accent'
+                            : 'bg-theme-primary/50 border-theme-secondary/15 text-theme-secondary hover:border-theme-secondary/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm leading-none">{item.flag}</span>
+                          <span>{item.name}</span>
+                        </div>
+                        {(user?.language || language) === item.code && (
+                          <div className="w-1.5 h-1.5 bg-accent rounded-full" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+
                 {/* Skin Profile */}
-                <CollapsibleSection title="Skin Profile" icon={ShieldCheck}>
+                <CollapsibleSection title={translate('profile', user?.language || language)} icon={ShieldCheck}>
                   <div className="pt-4">
                     <ProfileSettings user={user} onUpdate={onUpdateProfile} />
                   </div>
                 </CollapsibleSection>
 
                 {/* Appearance */}
-                <CollapsibleSection title="Appearance" icon={Palette}>
+                <CollapsibleSection title={translate('appearance', user?.language || language)} icon={Palette}>
                   <div className="pt-4">
                     <ThemeSettings user={user} darkMode={darkMode} onUpdateTheme={onUpdateTheme} />
                   </div>
                 </CollapsibleSection>
 
                 {/* Notifications */}
-                <CollapsibleSection title="Notifications" icon={Zap}>
+                <CollapsibleSection title={translate('notifications', user?.language || language)} icon={Zap}>
                   <div className="pt-4">
                     <NotificationSettings user={user} onUpdate={onUpdateProfile} />
                   </div>
                 </CollapsibleSection>
 
                 {/* Saved Items */}
-                <CollapsibleSection title="Saved Items" icon={Bookmark}>
+                <CollapsibleSection title={translate('savedItems', user?.language || language)} icon={Bookmark}>
                   <div className="pt-4">
                     <SavedItems 
                       data={data}
@@ -4740,6 +5857,9 @@ const Dashboard: React.FC<{
           
           {/* Left Column (Streak & Logging) */}
           <div className="lg:col-span-4 space-y-6">
+            {/* Routine score & health score card at top of basic dashboard */}
+            <CompactSkinHealthScore score={data?.routineScore || 82} trend={data?.healthScoreTrend || 3} />
+
             {/* CURRENT STREAK CARD */}
             <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-3xl p-6 shadow-sm hover:border-accent/20 transition-all duration-300">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-theme-secondary/40 mb-4 flex items-center gap-1.5">
@@ -4762,16 +5882,53 @@ const Dashboard: React.FC<{
                 {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
                   const completions = getWeekDaysCompletions();
                   const isCompleted = completions[i];
+                  const todayIdx = (() => {
+                    const d = new Date().getDay();
+                    return d === 0 ? 6 : d - 1; // 0 for Mon, 6 for Sun
+                  })();
+                  const isToday = i === todayIdx;
+
+                  // Exquisite dynamic color codes for completed list elements to make the streak pop beautifully
+                  const dayColorCodes = [
+                    { bg: 'bg-indigo-500 text-white border-transparent', shadow: 'shadow-[0_4px_10px_rgba(99,102,241,0.25)]' }, // Mon (Indigo)
+                    { bg: 'bg-sky-500 text-white border-transparent', shadow: 'shadow-[0_4px_10px_rgba(14,165,233,0.25)]' },     // Tue (Sky)
+                    { bg: 'bg-teal-500 text-white border-transparent', shadow: 'shadow-[0_4px_10px_rgba(20,184,166,0.25)]' },    // Wed (Teal)
+                    { bg: 'bg-emerald-500 text-white border-transparent', shadow: 'shadow-[0_4px_10px_rgba(16,185,129,0.25)]' }, // Thu (Emerald)
+                    { bg: 'bg-amber-500 text-white border-transparent', shadow: 'shadow-[0_4px_10px_rgba(245,158,11,0.25)]' },   // Fri (Amber)
+                    { bg: 'bg-orange-500 text-white border-transparent', shadow: 'shadow-[0_4px_10px_rgba(249,115,22,0.25)]' },   // Sat (Orange)
+                    { bg: 'bg-rose-500 text-white border-transparent', shadow: 'shadow-[0_4px_10px_rgba(244,63,94,0.25)]' }      // Sun (Rose)
+                  ];
+
+                  const colorInfo = dayColorCodes[i];
+
                   return (
-                    <div 
-                      key={i} 
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                        isCompleted 
-                          ? 'bg-accent text-white shadow-sm shadow-accent/25 scale-105 font-extrabold' 
-                          : 'bg-theme-secondary/5 text-theme-secondary opacity-40'
-                      }`}
-                    >
-                      {day}
+                    <div className="relative flex flex-col items-center group cursor-pointer" key={i}>
+                      <div 
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 relative ${
+                          isCompleted 
+                            ? `${colorInfo.bg} ${colorInfo.shadow} scale-105` 
+                            : isToday
+                              ? 'bg-theme-secondary/10 text-theme-secondary border-2 border-dashed border-accent animate-pulse scale-105'
+                              : 'bg-theme-secondary/5 text-theme-secondary opacity-35 border border-transparent'
+                        }`}
+                      >
+                        {day}
+                        
+                        {/* Perfect indicators for today */}
+                        {isToday && (
+                          <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Interactive Tooltip detailing check-in status */}
+                      <span className="absolute -top-9 scale-0 group-hover:scale-100 transition-all duration-200 bg-zinc-900 border border-white/5 text-[9px] text-white font-bold py-1 px-2 rounded-md whitespace-nowrap z-30 tracking-wider shadow-lg pointer-events-none">
+                        {isToday 
+                          ? isCompleted ? 'Logged Today ✓' : 'Log Today' 
+                          : isCompleted ? 'Completed ✓' : 'Pending'}
+                      </span>
                     </div>
                   );
                 })}
@@ -4779,9 +5936,34 @@ const Dashboard: React.FC<{
             </div>
 
             {/* LOG ROUTINE & TODAY'S SKIN CARD */}
-            <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-3xl p-6 shadow-sm space-y-6 hover:border-accent/20 transition-all duration-300">
+            <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-3xl p-6 shadow-sm space-y-6 hover:border-accent/20 transition-all duration-300 relative">
+              {/* Compact track completion rate bubble in the top right corner */}
+              <div className="absolute top-5 right-5 flex items-center gap-1.5 bg-theme-secondary/5 hover:bg-theme-secondary/10 border border-theme-secondary/10 px-2.5 py-1 rounded-full text-[10px] font-bold text-accent transition-all cursor-default select-none group/completion z-20">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                <span>Completion: {86}%</span>
+                
+                {/* Compact popover on hover */}
+                <div className="absolute right-0 top-full mt-2 w-48 bg-zinc-950 border border-white/10 rounded-2xl p-3 shadow-xl scale-0 group-hover/completion:scale-100 transition-all duration-200 origin-top-right z-30 text-left pointer-events-none">
+                  <p className="text-[9px] font-black uppercase text-accent mb-2 tracking-wider">Weekly Performance</p>
+                  <div className="space-y-1.5 text-[10px]">
+                    <div className="flex justify-between items-center pb-1 border-b border-theme-secondary/5">
+                      <span className="text-theme-secondary opacity-65">This Week</span>
+                      <span className="font-extrabold text-accent">{86}%</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-1 border-b border-theme-secondary/5">
+                      <span className="text-theme-secondary opacity-65">Last Week</span>
+                      <span className="font-bold text-theme-secondary">{79}%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-theme-secondary opacity-65">Monthly Avg</span>
+                      <span className="font-bold text-theme-secondary">{71}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-theme-secondary/40 mb-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-theme-secondary/40 mb-3 block max-w-[50%] truncate">
                   Log Routine Today
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
@@ -4811,110 +5993,156 @@ const Dashboard: React.FC<{
               </div>
 
               <div className="pt-5 border-t border-theme-secondary/5">
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-theme-secondary/40 mb-4">
-                  Adjust Today's Metrics
-                </h4>
-                <div className="space-y-4">
-                  {/* Hydration Slider */}
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
-                      <span className="opacity-70">Skin Hydration</span>
-                      <span className="font-bold text-emerald-500">{Math.round((10 - checkInData.dryness) * 10)}%</span>
-                    </div>
-                    <div className="relative flex items-center group h-4">
-                      <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-emerald-500 rounded-full transition-all duration-300" 
-                          style={{ width: `${(10 - checkInData.dryness) * 10}%` }}
-                        />
-                      </div>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="10" 
-                        value={10 - checkInData.dryness}
-                        onChange={e => {
-                          const val = parseInt(e.target.value);
-                          setCheckInData({ ...checkInData, dryness: 10 - val });
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Oiliness Slider */}
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
-                      <span className="opacity-70">Sebum Oiliness</span>
-                      <span className="font-bold text-amber-500">{Math.round(checkInData.oiliness * 10)}%</span>
-                    </div>
-                    <div className="relative flex items-center group h-4">
-                      <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-amber-500 rounded-full transition-all duration-300" 
-                          style={{ width: `${checkInData.oiliness * 10}%` }}
-                        />
-                      </div>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="10" 
-                        value={checkInData.oiliness}
-                        onChange={e => setCheckInData({ ...checkInData, oiliness: parseInt(e.target.value) })}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Irritation Slider */}
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
-                      <span className="opacity-70">Skin Irritation</span>
-                      <span className="font-bold text-rose-500">{Math.round(checkInData.irritation * 10)}%</span>
-                    </div>
-                    <div className="relative flex items-center group h-4">
-                      <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-rose-400 rounded-full transition-all duration-300" 
-                          style={{ width: `${checkInData.irritation * 10}%` }}
-                        />
-                      </div>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="10" 
-                        value={checkInData.irritation}
-                        onChange={e => setCheckInData({ ...checkInData, irritation: parseInt(e.target.value) })}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Acne / Blemish Slider */}
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
-                      <span className="opacity-70">Skin Breakouts (Acne)</span>
-                      <span className="font-bold text-rose-600">{Math.round(checkInData.acne * 10)}%</span>
-                    </div>
-                    <div className="relative flex items-center group h-4">
-                      <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-rose-600 rounded-full transition-all duration-300" 
-                          style={{ width: `${checkInData.acne * 10}%` }}
-                        />
-                      </div>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="10" 
-                        step="0.1"
-                        value={checkInData.acne}
-                        onChange={e => setCheckInData({ ...checkInData, acne: parseFloat(e.target.value) })}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
-                      />
-                    </div>
-                  </div>
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-theme-secondary/40">
+                    Daily Skin Check-In
+                  </h4>
+                  <span className="text-[9px] font-bold text-accent px-2 py-0.5 bg-accent/10 rounded-full">
+                    Last check-in: {formatLastCheckIn(data?.lastCheckIn?.created_at || data?.lastCheckIn?.createdAt)}
+                  </span>
                 </div>
+
+                {/* Sub-Tabs for logging methods */}
+                {isPremiumUser && (
+                  <div className="flex gap-2 p-1 bg-theme-secondary/5 rounded-xl mb-5">
+                    <button
+                      onClick={() => setLogMethod("map")}
+                      className={`flex-1 py-2 text-center text-[10px] uppercase font-bold tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                        logMethod === "map"
+                          ? "bg-theme-primary text-cyan-500 shadow-sm border border-cyan-500/10"
+                          : "text-theme-secondary/50 hover:text-theme-secondary/80"
+                      }`}
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      👤 Face Map Log
+                    </button>
+                    <button
+                      onClick={() => setLogMethod("overall")}
+                      className={`flex-1 py-2 text-center text-[10px] uppercase font-bold tracking-widest rounded-lg transition-all ${
+                        logMethod === "overall"
+                          ? "bg-theme-primary text-theme-secondary shadow-sm"
+                          : "text-theme-secondary/50 hover:text-theme-secondary/80"
+                      }`}
+                    >
+                      📋 Overall scale
+                    </button>
+                  </div>
+                )}
+
+                {activeLogMethod === "overall" ? (
+                  <div className="space-y-4">
+                    {/* Hydration Slider */}
+                    <div>
+                      <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
+                        <span className="opacity-70">Skin Hydration</span>
+                        <span className="font-bold text-emerald-500">{Math.round((10 - checkInData.dryness) * 10)}%</span>
+                      </div>
+                      <div className="relative flex items-center group h-4">
+                        <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-300" 
+                            style={{ width: `${(10 - checkInData.dryness) * 10}%` }}
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="10" 
+                          value={10 - checkInData.dryness}
+                          onChange={e => {
+                            const val = parseInt(e.target.value);
+                            setCheckInData({ ...checkInData, dryness: 10 - val });
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Oiliness Slider */}
+                    <div>
+                      <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
+                        <span className="opacity-70">Skin Oiliness</span>
+                        <span className="font-bold text-amber-500">{Math.round(checkInData.oiliness * 10)}%</span>
+                      </div>
+                      <div className="relative flex items-center group h-4">
+                        <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-amber-500 rounded-full transition-all duration-300" 
+                            style={{ width: `${checkInData.oiliness * 10}%` }}
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="10" 
+                          value={checkInData.oiliness}
+                          onChange={e => setCheckInData({ ...checkInData, oiliness: parseInt(e.target.value) })}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Irritation Slider */}
+                    <div>
+                      <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
+                        <span className="opacity-70">Skin Irritation</span>
+                        <span className="font-bold text-rose-500">{Math.round(checkInData.irritation * 10)}%</span>
+                      </div>
+                      <div className="relative flex items-center group h-4">
+                        <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-rose-400 rounded-full transition-all duration-300" 
+                            style={{ width: `${checkInData.irritation * 10}%` }}
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="10" 
+                          value={checkInData.irritation}
+                          onChange={e => setCheckInData({ ...checkInData, irritation: parseInt(e.target.value) })}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Acne / Blemish Slider */}
+                    <div>
+                      <div className="flex justify-between items-center text-xs font-semibold text-theme-secondary mb-1.5">
+                        <span className="opacity-70">Skin Breakouts (Acne)</span>
+                        <span className="font-bold text-rose-600">{Math.round(checkInData.acne * 10)}%</span>
+                      </div>
+                      <div className="relative flex items-center group h-4">
+                        <div className="absolute left-0 right-0 h-1.5 bg-theme-secondary/5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-rose-600 rounded-full transition-all duration-300" 
+                            style={{ width: `${checkInData.acne * 10}%` }}
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="10" 
+                          step="0.1"
+                          value={checkInData.acne}
+                          onChange={e => setCheckInData({ ...checkInData, acne: parseFloat(e.target.value) })}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <FaceMap 
+                      zonesData={zonesData} 
+                      onChange={setZonesData} 
+                      darkMode={darkMode} 
+                      historicalLogs={data?.skinTrends || []}
+                      isPremium={user?.tier === "premium" || EARLY_ACCESS_MODE}
+                      onUpgrade={onUpgrade}
+                    />
+                  </div>
+                )}
 
                 <button 
                   onClick={handleSkinLog}
@@ -4927,127 +6155,71 @@ const Dashboard: React.FC<{
             </div>
           </div>
 
-          {/* Right Column (Double-width line chart) */}
-          <div className="lg:col-span-8 flex flex-col justify-between">
-            <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-3xl p-6 shadow-sm h-full flex flex-col justify-between hover:border-accent/10 transition-all duration-300">
-              <div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-theme-secondary/40 mb-3 flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-accent" /> Skin Development · Last 36 Days
-                </h4>
+          {/* Right Column (Double-width skin progress chart / face map switch) */}
+          <div className="lg:col-span-8 flex flex-col gap-4">
+            {/* If Premium, we show the toggle tabs at the top right of the section */}
+            {isPremiumUser && (
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-theme-primary border border-theme-secondary/10 rounded-2xl p-4 shadow-sm gap-3">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-accent">
+                    Dashboard Visualizer
+                  </h4>
+                  <p className="text-[10px] text-theme-secondary opacity-60 font-medium">Configure your primary dashboard display style</p>
+                </div>
+                <div className="flex gap-1 p-0.5 bg-theme-secondary/5 rounded-xl border border-theme-secondary/10 w-full sm:w-auto">
+                  <button
+                    onClick={() => setPremiumView("map")}
+                    className={`flex-1 sm:flex-initial px-3 py-1.5 text-[9px] uppercase font-extrabold tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                      premiumView === "map"
+                        ? "bg-accent text-white shadow-sm font-black"
+                        : "text-theme-secondary/60 hover:text-theme-secondary/90 font-bold"
+                    }`}
+                  >
+                    👤 Interactive Face Map
+                  </button>
+                  <button
+                    onClick={() => setPremiumView("graph")}
+                    className={`flex-1 sm:flex-initial px-3 py-1.5 text-[9px] uppercase font-extrabold tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                      premiumView === "graph"
+                        ? "bg-accent text-white shadow-sm font-black"
+                        : "text-theme-secondary/60 hover:text-theme-secondary/90 font-bold"
+                    }`}
+                  >
+                    📈 Skin Graph
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div className="h-72 w-full mt-2 flex items-center justify-center">
-                {chartData && chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(var(--theme-secondary-rgb), 0.05)" />
-                      <XAxis 
-                        dataKey="date" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{fill: 'var(--theme-secondary)', opacity: 0.35, fontSize: 10}}
-                        dy={10}
-                      />
-                      <YAxis 
-                        hide 
-                        domain={[0, 100]} 
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'var(--theme-primary)', 
-                          border: '1px solid rgba(var(--theme-secondary-rgb), 0.1)',
-                          borderRadius: '16px',
-                          fontSize: '11px',
-                          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-                        }}
-                        itemStyle={{ fontWeight: '600' }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="Hydration" 
-                        stroke="var(--accent)" 
-                        strokeWidth={4} 
-                        dot={false}
-                        activeDot={{ r: 6, fill: "var(--accent)" }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="Acne" 
-                        stroke="#f43f5e" 
-                        strokeWidth={2.5} 
-                        strokeDasharray="5 5"
-                        dot={false}
-                        activeDot={{ r: 4, fill: "#f43f5e" }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full w-full flex flex-col items-center justify-center text-theme-secondary opacity-40 space-y-2 border-2 border-dashed border-theme-secondary/10 rounded-2xl">
-                    <BarChart2 className="w-8 h-8 opacity-20" />
-                    <p className="text-sm font-medium">Log your daily progress to see trends</p>
-                  </div>
-                )}
+            {/* Display Either FaceMap or SkinTrendsChart based on user tier & premium selector */}
+            {(!isPremiumUser || premiumView === "graph") ? (
+              <SkinTrendsChart 
+                trends={data?.skinTrends || []} 
+                user={user} 
+                onUpgrade={onUpgrade} 
+              />
+            ) : (
+              <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm flex flex-col gap-4 hover:border-accent/20 transition-all duration-300">
+                <div>
+                  <h3 className="text-xl font-bold text-accent flex items-center gap-2">
+                    <UserIcon className="w-5 h-5 text-accent" /> Premium Interactive Face Map
+                  </h3>
+                  <p className="text-xs text-theme-secondary opacity-40 uppercase tracking-widest mt-1">Select zones to analyze historical condition data</p>
+                </div>
+                <FaceMap 
+                  zonesData={zonesData} 
+                  onChange={setZonesData} 
+                  darkMode={darkMode} 
+                  historicalLogs={data?.skinTrends || []}
+                  isPremium={isPremiumUser}
+                  onUpgrade={onUpgrade}
+                />
               </div>
-
-              {/* Legend matching mockup styling perfectly */}
-              <div className="flex justify-start gap-6 text-[10px] font-bold text-theme-secondary opacity-50 mt-5 pl-2">
-                <span className="flex items-center gap-2">
-                  <span className="w-6 h-1 bg-accent rounded"></span> Skin Hydration
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="w-6 h-0.5 border-t-2 border-dashed border-rose-500"></span> Blemishes / Acne
-                </span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Bottom Full-Width Weekly Stats */}
-        <div className="w-full">
-          <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-3xl p-6 shadow-sm hover:border-accent/10 transition-all duration-300">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-theme-secondary/40 mb-6">
-              Track Completion Rate
-            </h4>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              <div className="text-center sm:text-left border-r border-theme-secondary/5 last:border-0 pr-4">
-                <div className="text-3xl font-light text-accent tracking-tight">
-                  {86}%
-                </div>
-                <div className="text-[9px] font-bold text-theme-secondary opacity-40 uppercase tracking-widest mt-1">
-                  This week
-                </div>
-              </div>
 
-              <div className="text-center sm:text-left border-r border-theme-secondary/5 last:border-0 pr-4">
-                <div className="text-3xl font-light text-theme-secondary tracking-tight">
-                  {79}%
-                </div>
-                <div className="text-[9px] font-bold text-theme-secondary opacity-40 uppercase tracking-widest mt-1">
-                  Last week
-                </div>
-              </div>
-
-              <div className="text-center sm:text-left border-r border-theme-secondary/5 last:border-0 pr-4">
-                <div className="text-3xl font-light text-theme-secondary tracking-tight">
-                  {71}%
-                </div>
-                <div className="text-[9px] font-bold text-theme-secondary opacity-40 uppercase tracking-widest mt-1">
-                  Monthly average
-                </div>
-              </div>
-
-              <div className="text-center sm:text-left">
-                <div className="text-3xl font-bold text-rose-500 tracking-tight">
-                  {totalDaysTracked}
-                </div>
-                <div className="text-[9px] font-bold text-theme-secondary opacity-40 uppercase tracking-widest mt-1">
-                  Days tracked
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Compact Active Routine collapsible so they can preview skin products smoothly */}
         <div className="w-full">
@@ -5090,107 +6262,6 @@ const Dashboard: React.FC<{
             </div>
           </CollapsibleSection>
         </div>
-
-      {(user.tier === 'premium' || EARLY_ACCESS_MODE) && (
-        <div className="pt-8 mb-12">
-          <button 
-            onClick={() => setShowCompatibility(!showCompatibility)}
-            className="w-full flex items-center justify-between p-8 bg-theme-secondary/5 rounded-[40px] border-2 border-theme-secondary/10 hover:border-accent/40 transition-all group"
-          >
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-accent rounded-[24px] flex items-center justify-center shadow-lg shadow-accent/20 group-hover:scale-105 transition-transform">
-                <ShieldCheck className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-2xl font-black text-theme-secondary tracking-tight">Skin Compatibility Guide</h3>
-                <p className="text-sm text-theme-secondary opacity-50 font-medium">Expert insights for your specific skin type.</p>
-              </div>
-            </div>
-            <div className={`p-4 bg-theme-secondary/10 rounded-2xl transition-transform duration-500 ${showCompatibility ? 'rotate-180' : ''}`}>
-              <ChevronDown className="w-6 h-6 text-theme-secondary" />
-            </div>
-          </button>
-          
-          <AnimatePresence>
-            {showCompatibility && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                animate={{ opacity: 1, height: "auto", marginTop: 24 }}
-                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                className="overflow-hidden"
-              >
-                <SkinCompatibilityGuide />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-
-        {/* Section 2: Premium Insights (Pro) */}
-        <section>
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center">
-              <Award className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-theme-secondary">Premium Insights</h3>
-              <p className="text-xs opacity-40 uppercase tracking-widest">Advanced analytics & history</p>
-            </div>
-            {user.tier !== 'premium' && (
-              <span className={`ml-2 px-2 py-0.5 ${EARLY_ACCESS_MODE ? 'bg-emerald-500' : 'bg-accent'} text-white text-[8px] font-black rounded-md uppercase tracking-tighter`}>
-                {EARLY_ACCESS_MODE ? 'Unlocked' : 'Locked'}
-              </span>
-            )}
-          </div>
-
-          <PremiumGate 
-            user={user} 
-            onUpgrade={onUpgrade}
-            title="Unlock Advanced Skin Insights"
-            description="Visualize your skin's progress over time, track long-term trends, and access your full history of analyses and comparisons."
-          >
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="md:col-span-2">
-                <SkinTrendsChart trends={data?.skinTrends || []} />
-              </div>
-              <div className="space-y-6">
-                <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-[32px] p-8 shadow-sm">
-                  <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">Saved History</h4>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-theme-secondary/5 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <Bookmark className="w-4 h-4 text-accent" />
-                        <span className="text-xs font-bold text-theme-secondary">Saved Routines</span>
-                      </div>
-                      <span className="text-xs font-black text-accent">{data?.savedRoutines.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-theme-secondary/5 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <Search className="w-4 h-4 text-accent" />
-                        <span className="text-xs font-bold text-theme-secondary">Analyses</span>
-                      </div>
-                      <span className="text-xs font-black text-accent">{data?.savedAnalyses.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-theme-secondary/5 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-accent" />
-                        <span className="text-xs font-bold text-theme-secondary">Comparisons</span>
-                      </div>
-                      <span className="text-xs font-black text-accent">{data?.savedComparisons.length || 0}</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="w-full mt-6 py-3 bg-theme-secondary/10 text-theme-secondary rounded-xl font-bold text-xs hover:bg-theme-secondary/20 transition-all"
-                  >
-                    View All Saved Items
-                  </button>
-                </div>
-              </div>
-            </div>
-          </PremiumGate>
-        </section>
       </div>
 
       <AnimatePresence>
@@ -5199,6 +6270,7 @@ const Dashboard: React.FC<{
             item={detailItem.item} 
             type={detailItem.type} 
             onClose={() => setDetailItem(null)} 
+            language={language}
           />
         )}
       </AnimatePresence>
@@ -5212,7 +6284,7 @@ const Dashboard: React.FC<{
           className="transition-transform hover:scale-105 active:scale-95 duration-300"
         >
           <img 
-            alt="GlowGuide Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
+            alt="Klenly Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
             width="250" 
             height="54" 
             src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1126955&theme=light&t=1776542664167"
@@ -5240,12 +6312,31 @@ const safeJsonParse = (str: string | null) => {
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("glowguide_user");
+      const saved = localStorage.getItem("klenly_user");
       return (saved && saved !== "undefined") ? "dashboard" : "routine";
     }
     return "routine";
   });
   const [user, setUser] = useState<User | null>(null);
+  const [language, setLanguage] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("klenly_language");
+      return saved || "en";
+    }
+    return "en";
+  });
+
+  const handleUpdateLanguage = (newLang: string) => {
+    setLanguage(newLang);
+    localStorage.setItem("klenly_language", newLang);
+  };
+
+  useEffect(() => {
+    if (user?.language && user.language !== language) {
+      setLanguage(user.language);
+      localStorage.setItem("klenly_language", user.language);
+    }
+  }, [user?.language]);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
@@ -5258,7 +6349,7 @@ export default function App() {
   const [anonClientId, setAnonClientId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("glowguide_theme");
+      const saved = localStorage.getItem("klenly_theme");
       if (saved) return saved === "dark";
       return false; // Force day mode as default
     }
@@ -5278,7 +6369,7 @@ export default function App() {
             return value;
           })) as User;
           setUser(userData);
-          localStorage.setItem("glowguide_user", JSON.stringify(userData));
+          localStorage.setItem("klenly_user", JSON.stringify(userData));
         } else {
           // If Firestore is empty for some reason but Auth exists
           const restoredUser: User = {
@@ -5292,13 +6383,13 @@ export default function App() {
         }
       } else {
         // Only clear if not in anonymous/mock session
-        const saved = localStorage.getItem("glowguide_user");
+        const saved = localStorage.getItem("klenly_user");
         if (saved && saved !== "undefined") {
           const parsed = safeJsonParse(saved);
           if (parsed && parsed.id === -1) return; // Keep anon user
         }
         setUser(null);
-        localStorage.removeItem("glowguide_user");
+        localStorage.removeItem("klenly_user");
       }
     });
 
@@ -5310,8 +6401,8 @@ export default function App() {
     };
     checkApiKey();
     
-    const savedLocal = localStorage.getItem("glowguide_user");
-    const savedSession = sessionStorage.getItem("glowguide_user");
+    const savedLocal = localStorage.getItem("klenly_user");
+    const savedSession = sessionStorage.getItem("klenly_user");
     if (savedLocal && savedLocal !== "undefined") {
       const parsed = safeJsonParse(savedLocal);
       if (parsed) setUser(parsed);
@@ -5349,11 +6440,11 @@ export default function App() {
     if (darkMode) {
       document.documentElement.classList.add("dark");
       document.documentElement.style.colorScheme = "dark";
-      localStorage.setItem("glowguide_theme", "dark");
+      localStorage.setItem("klenly_theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
       document.documentElement.style.colorScheme = "light";
-      localStorage.setItem("glowguide_theme", "light");
+      localStorage.setItem("klenly_theme", "light");
     }
   }, [darkMode]);
 
@@ -5378,11 +6469,11 @@ export default function App() {
     if (!u) return;
     setUser(u);
     if (remember) {
-      localStorage.setItem("glowguide_user", JSON.stringify(u));
-      sessionStorage.removeItem("glowguide_user");
+      localStorage.setItem("klenly_user", JSON.stringify(u));
+      sessionStorage.removeItem("klenly_user");
     } else {
-      sessionStorage.setItem("glowguide_user", JSON.stringify(u));
-      localStorage.removeItem("glowguide_user");
+      sessionStorage.setItem("klenly_user", JSON.stringify(u));
+      localStorage.removeItem("klenly_user");
     }
     if (!u.onboardingCompleted) {
       setIsOnboardingOpen(true);
@@ -5398,10 +6489,10 @@ export default function App() {
       return value;
     }));
 
-    if (localStorage.getItem("glowguide_user")) {
-      localStorage.setItem("glowguide_user", JSON.stringify(sanitized));
-    } else if (sessionStorage.getItem("glowguide_user")) {
-      sessionStorage.setItem("glowguide_user", JSON.stringify(sanitized));
+    if (localStorage.getItem("klenly_user")) {
+      localStorage.setItem("klenly_user", JSON.stringify(sanitized));
+    } else if (sessionStorage.getItem("klenly_user")) {
+      sessionStorage.setItem("klenly_user", JSON.stringify(sanitized));
     }
   };
 
@@ -5437,7 +6528,7 @@ export default function App() {
     if (user && user.id) {
       const updatedUser = { ...user, theme_id: themeId, theme_primary_color: accent, theme_secondary_color: accent };
       setUser(updatedUser);
-      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+      localStorage.setItem("klenly_user", JSON.stringify(updatedUser));
     }
   };
 
@@ -5445,7 +6536,7 @@ export default function App() {
     if (user && user.id) {
       const updatedUser = { ...user, routine };
       setUser(updatedUser);
-      localStorage.setItem("glowguide_user", JSON.stringify(updatedUser));
+      localStorage.setItem("klenly_user", JSON.stringify(updatedUser));
       await api.saveRoutine(user.id, routine);
     } else {
       // For anonymous users, we just update the local state which resets on refresh/session end
@@ -5459,8 +6550,8 @@ export default function App() {
     try {
       await signOut(auth);
       setUser(null);
-      localStorage.removeItem("glowguide_user");
-      sessionStorage.removeItem("glowguide_user");
+      localStorage.removeItem("klenly_user");
+      sessionStorage.removeItem("klenly_user");
       setActiveTab("routine");
     } catch (e) {
       console.error("Logout error", e);
@@ -5473,7 +6564,7 @@ export default function App() {
       const res = await api.startTrial(user.id);
       if (res.success) {
         setUser(res.user);
-        localStorage.setItem("glowguide_user", JSON.stringify(res.user));
+        localStorage.setItem("klenly_user", JSON.stringify(res.user));
         setIsSubscriptionModalOpen(false);
       }
     } catch (e) {
@@ -5487,7 +6578,7 @@ export default function App() {
       const res = await api.subscribe(user.id, plan);
       if (res.success) {
         setUser(res.user);
-        localStorage.setItem("glowguide_user", JSON.stringify(res.user));
+        localStorage.setItem("klenly_user", JSON.stringify(res.user));
         setIsSubscriptionModalOpen(false);
       }
     } catch (e) {
@@ -5501,7 +6592,7 @@ export default function App() {
       const res = await api.cancelSubscription(user.id);
       if (res.success) {
         setUser(res.user);
-        localStorage.setItem("glowguide_user", JSON.stringify(res.user));
+        localStorage.setItem("klenly_user", JSON.stringify(res.user));
       }
     } catch (e) {
       console.error("Cancel error", e);
@@ -5545,9 +6636,10 @@ export default function App() {
         onUpgrade={() => setIsSubscriptionModalOpen(true)}
         dashboard={dashboardData}
         onUpdateUser={handleUpdateProfile}
+        language={user?.language || language}
       />
 
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} user={user} language={user?.language || language} />
 
       <div className="fixed bottom-24 right-0 z-40 flex flex-col items-end">
         <AnimatePresence mode="wait">
@@ -5613,6 +6705,7 @@ export default function App() {
               key="home" 
               onStartRoutine={() => setActiveTab("routine")} 
               onLearnMore={() => setIsLearnMoreOpen(true)}
+              language={user?.language || language}
             />
           )}
           {activeTab === "routine" && (
@@ -5622,6 +6715,8 @@ export default function App() {
               onUpdateRoutine={handleUpdateRoutine}
               onLogin={handleLogin}
               onUpgrade={() => setIsSubscriptionModalOpen(true)}
+              savedRoutinesCount={dashboardData?.savedRoutines?.length || 0}
+              language={user?.language || language}
             />
           )}
           {activeTab === "analyze" && (
@@ -5633,6 +6728,8 @@ export default function App() {
               onUpdateRoutine={handleUpdateRoutine}
               onLogin={handleLogin}
               onUpgrade={() => setIsSubscriptionModalOpen(true)}
+              savedAnalysesCount={dashboardData?.savedAnalyses?.length || 0}
+              language={user?.language || language}
             />
           )}
           {activeTab === "compare" && (
@@ -5642,17 +6739,27 @@ export default function App() {
               feature="Product Comparison" 
               onUpgrade={() => setIsSubscriptionModalOpen(true)}
             >
-              <ProductComparator user={user} onUpgrade={() => setIsSubscriptionModalOpen(true)} />
+              <ProductComparator user={user} onUpgrade={() => setIsSubscriptionModalOpen(true)} language={user?.language || language} />
             </PremiumGate>
           )}
           {activeTab === "routine-builder" && (
-            <RoutineBuilder 
-              key="routine-builder" 
-              user={user} 
-              onUpdateRoutine={handleUpdateRoutine} 
-              onLogin={handleLogin}
+            <PremiumGate
+              key="routine-builder"
+              user={user}
+              feature="Routine Builder"
+              title="Routine Builder with conflict detection"
+              description="Build and organize a personalized day & night routine with active ingredient conflict checks."
               onUpgrade={() => setIsSubscriptionModalOpen(true)}
-            />
+            >
+              <RoutineBuilder 
+                key="routine-builder" 
+                user={user} 
+                onUpdateRoutine={handleUpdateRoutine} 
+                onLogin={handleLogin}
+                onUpgrade={() => setIsSubscriptionModalOpen(true)}
+                language={user?.language || language}
+              />
+            </PremiumGate>
           )}
           {activeTab === "dashboard" && (
             <Dashboard 
@@ -5665,6 +6772,8 @@ export default function App() {
               setActiveTab={setActiveTab}
               onUpgrade={() => setIsSubscriptionModalOpen(true)}
               onCancelSubscription={handleCancelSubscription}
+              language={user?.language || language}
+              onUpdateLanguage={handleUpdateLanguage}
             />
           )}
         </AnimatePresence>
@@ -5676,26 +6785,33 @@ export default function App() {
         onSubscribe={handleSubscribe}
         onStartTrial={handleStartTrial}
         user={user}
+        language={user?.language || language}
       />
 
-      <LearnMoreModal isOpen={isLearnMoreOpen} onClose={() => setIsLearnMoreOpen(false)} />
+      <LearnMoreModal isOpen={isLearnMoreOpen} onClose={() => setIsLearnMoreOpen(false)} language={user?.language || language} />
       <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
       <TermsConditionsModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
 
       <footer className="border-t-2 border-theme-secondary/20 py-12 px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-theme-secondary/10 rounded flex items-center justify-center">
-              <Sparkles className="text-theme-secondary opacity-50 w-4 h-4" />
-            </div>
-            <span className="font-semibold text-theme-secondary opacity-40">GlowGuide</span>
+            <Logo size="custom" className="w-6 h-6" showBackground={true} />
+            <span className="font-semibold text-theme-secondary opacity-40">Klenly</span>
           </div>
           <div className="flex gap-8 text-sm text-theme-secondary opacity-50 font-medium">
-            <button onClick={() => setIsPrivacyOpen(true)} className="hover:opacity-100 transition-colors cursor-pointer">Privacy Policy</button>
-            <button onClick={() => setIsTermsOpen(true)} className="hover:opacity-100 transition-colors cursor-pointer">Terms of Service</button>
-            <a href="mailto:support@glowguide.ai" className="hover:opacity-100 transition-colors">Contact</a>
+            <button onClick={() => setIsPrivacyOpen(true)} className="hover:opacity-100 transition-colors cursor-pointer">
+              {(user?.language || language) === "es" ? "Política de Privacidad" : (user?.language || language) === "fr" ? "Politique de Confidentialité" : (user?.language || language) === "ko" ? "개인정보처리방침" : "Privacy Policy"}
+            </button>
+            <button onClick={() => setIsTermsOpen(true)} className="hover:opacity-100 transition-colors cursor-pointer">
+              {(user?.language || language) === "es" ? "Términos de Servicio" : (user?.language || language) === "fr" ? "Conditions d'Utilisation" : (user?.language || language) === "ko" ? "이용약관" : "Terms of Service"}
+            </button>
+            <a href="mailto:support@klenly.ai" className="hover:opacity-100 transition-colors">
+              {(user?.language || language) === "es" ? "Contacto" : (user?.language || language) === "fr" ? "Contact" : (user?.language || language) === "ko" ? "문의하기" : "Contact"}
+            </a>
           </div>
-          <p className="text-sm text-theme-secondary opacity-40">© 2026 GlowGuide. All rights reserved.</p>
+          <p className="text-sm text-theme-secondary opacity-40">
+            {(user?.language || language) === "es" ? "© 2026 Klenly. Todos los derechos reservados." : (user?.language || language) === "fr" ? "© 2026 Klenly. Tous droits réservés." : (user?.language || language) === "ko" ? "© 2026 Klenly. All rights reserved. (모든 권리 보유)" : "© 2026 Klenly. All rights reserved."}
+          </p>
         </div>
       </footer>
     </div>

@@ -1,11 +1,11 @@
-# GlowGuide AI
+# Klenly AI
 
 A neutral, privacy-first skincare assistant.
 
 ## Features
 - **Anonymous Routine Generator**: Get a barrier-focused routine based on your skin type and concerns.
 - **Ingredient Analyzer**: Understand product compatibility without the marketing hype.
-- **Long-term Tracker (Stub)**: A gated dashboard for saved data and daily check-ins.
+- **Long-term Tracker**: A gated dashboard for saved data and daily check-ins.
 
 ## Tech Stack
 - **Frontend**: React, Tailwind CSS, Motion, Lucide Icons.

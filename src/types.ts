@@ -108,6 +108,7 @@ export interface User {
   sunscreenUsage?: string;
   onboardingCompleted?: boolean;
   theme_id?: string;
+  language?: string;
   tier: 'free' | 'premium';
   subscriptionStatus?: 'active' | 'trialing' | 'canceled' | 'none';
   subscriptionEndDate?: string;
@@ -149,6 +150,8 @@ export interface SkinLog {
   dryness: number;
   irritation: number;
   created_at: string;
+  zonesData?: any;
+  zones_data?: any;
 }
 
 export interface DashboardData {
@@ -164,4 +167,19 @@ export interface DashboardData {
   skinTrends: SkinLog[];
   healthScore: number;
   healthScoreTrend: number;
+}
+
+export interface ZoneCondition {
+  acne: number;
+  oiliness: number;
+  dryness: number;
+  irritation: number;
+}
+
+export interface ZonesData {
+  forehead: ZoneCondition;
+  nose: ZoneCondition;
+  leftCheek: ZoneCondition;
+  rightCheek: ZoneCondition;
+  chin: ZoneCondition;
 }

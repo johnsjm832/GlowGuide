@@ -111,12 +111,65 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
     }
   };
 
+  const playSuccessSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      
+      // Beautiful warm dual-tone minor/major harmonic chord (A5 and C#6)
+      osc1.frequency.setValueAtTime(880, ctx.currentTime); // A5
+      osc2.frequency.setValueAtTime(1108.73, ctx.currentTime); // C#6
+      
+      // Quick sweet attack and smooth decay
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.02); // gentle volume
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3); // swift fade-out
+      
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc1.start();
+      osc2.start();
+      osc1.stop(ctx.currentTime + 0.35);
+      osc2.stop(ctx.currentTime + 0.35);
+    } catch (err) {
+      console.warn("AudioContext failed to play sound:", err);
+    }
+  };
+
   const handleBarcodeScanned = (barcode: string) => {
+    // Soft dual-pulse vibration if supported
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      try {
+        window.navigator.vibrate([50, 45, 50]);
+      } catch (e) {
+        // Safe fallback if permission or support is blocked in frame
+      }
+    }
+    
+    playSuccessSound();
     saveRecentScan(barcode);
     onScanSuccess(barcode);
   };
 
   const handleSelectRecent = (barcode: string) => {
+    // Single subtle haptic click
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      try {
+        window.navigator.vibrate(35);
+      } catch (e) {}
+    }
+    
+    playSuccessSound();
     saveRecentScan(barcode);
     onScanSuccess(barcode);
   };
@@ -239,11 +292,11 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
                 {/* Viewfinder background */}
                 <div className="absolute inset-0 border border-accent/20 rounded-xl bg-accent/[0.02]" />
 
-                {/* Cyberpunk corner notches */}
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-[3px] border-l-[3px] border-accent rounded-tl-lg" />
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-[3px] border-r-[3px] border-accent rounded-tr-lg" />
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-[3px] border-l-[3px] border-accent rounded-bl-lg" />
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-[3px] border-r-[3px] border-accent rounded-br-lg" />
+                {/* Cyberpunk corner notches - enlarged white borders */}
+                <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white rounded-tl-lg" />
+                <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white rounded-tr-lg" />
+                <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white rounded-bl-lg" />
+                <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white rounded-br-lg" />
 
                 {/* Sub-notch accents */}
                 <div className="absolute top-1/2 left-0 w-1.5 h-3 bg-accent/65 -translate-y-1/2 -translate-x-[1.5px] rounded-r" />

@@ -13,8 +13,17 @@ import {
   serverTimestamp,
   deleteDoc
 } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
 import { RoutineResponse, AnalysisResponse, User, DashboardData, SkinLog, RoutineLog } from "../types.ts";
+
+const getAuthHeaders = async () => {
+  const firebaseUser = auth.currentUser;
+  if (firebaseUser) {
+    const token = await firebaseUser.getIdToken();
+    return { "Authorization": `Bearer ${token}` };
+  }
+  return {};
+};
 
 export const api = {
   // Fixed login method - now just fetches by ID or returns a fallback
@@ -119,11 +128,41 @@ export const api = {
     }
   },
   
-  async checkUsage(_clientId: string | null, _userId: string | number | null): Promise<{ allowed: boolean; error?: string; count?: number }> {
-    return { allowed: true };
+  async checkUsage(clientId: string | null, userId: string | number | null): Promise<{ allowed: boolean; error?: string; count?: number }> {
+    try {
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch("/api/usage/check", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...authHeaders
+        },
+        body: JSON.stringify({ clientId, userId: userId ? String(userId) : null })
+      });
+      if (!response.ok) {
+        return { allowed: true, count: 0 };
+      }
+      return await response.json();
+    } catch (e) {
+      console.error("Error checking usage:", e);
+      return { allowed: true, count: 0 };
+    }
   },
 
-  async logUsage(_clientId: string | null, _userId: string | number | null): Promise<void> {
+  async logUsage(clientId: string | null, userId: string | number | null): Promise<void> {
+    try {
+      const authHeaders = await getAuthHeaders();
+      await fetch("/api/usage/log", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...authHeaders
+        },
+        body: JSON.stringify({ clientId, userId: userId ? String(userId) : null })
+      });
+    } catch (e) {
+      console.error("Error logging usage:", e);
+    }
   },
 
   async saveTheme(userId: string | number, themeId: string, primaryColor?: string, secondaryColor?: string): Promise<{ success: boolean; error?: string }> {
