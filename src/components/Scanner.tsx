@@ -22,6 +22,11 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const regionId = "reader";
 
+  const onScanSuccessRef = useRef(onScanSuccess);
+  useEffect(() => {
+    onScanSuccessRef.current = onScanSuccess;
+  }, [onScanSuccess]);
+
   useEffect(() => {
     const stored = localStorage.getItem('skinlog_recent_scans');
     let list: RecentScanItem[] = [];
@@ -85,11 +90,11 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
         // Fetch beauty API details asynchronously to replace temporary values
         import('../services/beautyService').then(async ({ fetchProductByBarcode }) => {
           const fetched = await fetchProductByBarcode(barcode);
-          if (fetched) {
-            const reStored = localStorage.getItem('skinlog_recent_scans');
-            let reList: RecentScanItem[] = reStored ? JSON.parse(reStored) : [];
-            const idx = reList.findIndex(item => item.barcode === barcode);
-            if (idx > -1) {
+          const reStored = localStorage.getItem('skinlog_recent_scans');
+          let reList: RecentScanItem[] = reStored ? JSON.parse(reStored) : [];
+          const idx = reList.findIndex(item => item.barcode === barcode);
+          if (idx > -1) {
+            if (fetched) {
               reList[idx] = {
                 barcode,
                 name: fetched.name || 'Unknown Product',
@@ -97,9 +102,17 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
                 imageUrl: fetched.imageUrl || null,
                 timestamp: Date.now()
               };
-              localStorage.setItem('skinlog_recent_scans', JSON.stringify(reList));
-              setRecentScans(reList);
+            } else {
+              reList[idx] = {
+                barcode,
+                name: `Product #${barcode}`,
+                brandText: 'Not Found',
+                imageUrl: null,
+                timestamp: Date.now()
+              };
             }
+            localStorage.setItem('skinlog_recent_scans', JSON.stringify(reList));
+            setRecentScans(reList);
           }
         }).catch(err => console.error("Async load products error:", err));
       }
@@ -158,7 +171,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
     
     playSuccessSound();
     saveRecentScan(barcode);
-    onScanSuccess(barcode);
+    onScanSuccessRef.current(barcode);
   };
 
   const handleSelectRecent = (barcode: string) => {
@@ -171,7 +184,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
     
     playSuccessSound();
     saveRecentScan(barcode);
-    onScanSuccess(barcode);
+    onScanSuccessRef.current(barcode);
   };
 
   const clearRecentScans = () => {
@@ -185,11 +198,17 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
     const startScanner = async () => {
       try {
         setIsScanning(true);
+        const readerEl = document.getElementById(regionId);
+        const containerWidth = readerEl?.clientWidth || 300;
+        const containerHeight = readerEl?.clientHeight || 300;
+        const boxWidth = Math.min(260, containerWidth - 40);
+        const boxHeight = Math.min(150, Math.floor(boxWidth * 0.55));
+
         await scannerRef.current?.start(
           { facingMode: "environment" },
           {
             fps: 10,
-            qrbox: { width: 250, height: 150 },
+            qrbox: { width: boxWidth, height: boxHeight },
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,
@@ -198,7 +217,14 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
             ]
           },
           (decodedText) => {
-            handleBarcodeScanned(decodedText);
+            if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+              try {
+                window.navigator.vibrate([50, 45, 50]);
+              } catch (e) {}
+            }
+            playSuccessSound();
+            saveRecentScan(decodedText);
+            onScanSuccessRef.current(decodedText);
           },
           (errorMessage) => {
             // Silently handle scan failures (happens every frame if no barcode)
@@ -216,7 +242,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
     return () => {
       stopScanner();
     };
-  }, [onScanSuccess]);
+  }, []);
 
   const stopScanner = async () => {
     if (scannerRef.current && scannerRef.current.isScanning) {
@@ -254,7 +280,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
           </button>
         </div>
 
-        <div className="relative aspect-square sm:aspect-video bg-black flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-square sm:aspect-video bg-black flex items-center justify-center overflow-visible">
           <div id={regionId} className="w-full h-full relative z-0"></div>
           
           {!isScanning && !error && (

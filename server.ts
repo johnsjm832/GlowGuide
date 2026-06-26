@@ -36,7 +36,8 @@ db.exec(`
     tier TEXT DEFAULT 'free',
     subscription_status TEXT DEFAULT 'none',
     subscription_end_date DATETIME DEFAULT NULL,
-    trial_end_date DATETIME DEFAULT NULL
+    trial_end_date DATETIME DEFAULT NULL,
+    language TEXT DEFAULT 'en'
   );
   CREATE TABLE IF NOT EXISTS saved_routines (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,7 +122,8 @@ const columns = [
   ['subscription_status', "TEXT DEFAULT 'none'"],
   ['subscription_end_date', 'DATETIME DEFAULT NULL'],
   ['trial_end_date', 'DATETIME DEFAULT NULL'],
-  ['firebase_uid', 'TEXT DEFAULT NULL']
+  ['firebase_uid', 'TEXT DEFAULT NULL'],
+  ['language', "TEXT DEFAULT 'en'"]
 ];
 
 for (const [name, def] of columns) {
@@ -145,7 +147,7 @@ try {
   console.log(`Migration: Added column zones_data to skin_logs table.`);
 } catch (e) {}
 
-const FIREBASE_API_KEY = "AIzaSyADqoiz6sPyiUwcrpzHC3W29hHaDpNecxs";
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || "AIzaSyADqoiz6sPyiUwcrpzHC3W29hHaDpNecxs";
 const tokenCache = new Map<string, { uid: string; email: string; expires: number }>();
 
 async function verifyFirebaseToken(idToken: string): Promise<{ uid: string; email: string } | null> {
@@ -296,21 +298,20 @@ app.post("/api/usage/log", (req: any, res) => {
 });
 
 // 2. Authentication and Account Access
-app.post("/api/auth/login", (req, res) => {
-  const { email } = req.body;
-  
-  // Try to find user or create one for this demo
-  let user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any;
-  if (!user) {
-    const info = db.prepare("INSERT INTO users (email, password) VALUES (?, ?)").run(email, 'password');
-    user = db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid);
-  }
+// Legacy auth/login endpoint removed (real auth handled directly with Firebase Auth)
 
-  res.json({ 
-    id: user.id, 
-    email: user.email, 
+const profanity = [
+  "fuck", "shit", "asshole", "bitch", "dick", "pussy", "cunt", "bastard", "idiot", "stupid", "dumb", "moron",
+  "nigger", "faggot", "retard", "slut", "whore", "rape", "kill", "die", "suicide", "porn", "sex", "naked"
+];
+
+app.get("/api/user/profile/:userId", requireUserAuth, (req: any, res) => {
+  const user = req.user;
+  res.json({
+    id: user.id,
+    email: user.email,
     name: user.name || null,
-    token: "mock-jwt-token",
+    language: user.language || 'en',
     theme_primary_color: user.theme_primary_color || null,
     theme_secondary_color: user.theme_secondary_color || null,
     routine: safeJsonParse(user.routine),
@@ -330,15 +331,11 @@ app.post("/api/auth/login", (req, res) => {
   });
 });
 
-const profanity = [
-  "fuck", "shit", "asshole", "bitch", "dick", "pussy", "cunt", "bastard", "idiot", "stupid", "dumb", "moron",
-  "nigger", "faggot", "retard", "slut", "whore", "rape", "kill", "die", "suicide", "porn", "sex", "naked"
-];
-
 app.post("/api/user/profile", requireUserAuth, (req: any, res) => {
   const { 
     userId, 
     name,
+    language,
     skinType, 
     sensitivity, 
     concerns, 
@@ -362,6 +359,7 @@ app.post("/api/user/profile", requireUserAuth, (req: any, res) => {
   db.prepare(`
     UPDATE users SET 
       name = COALESCE(?, name),
+      language = COALESCE(?, language),
       skin_type = COALESCE(?, skin_type), 
       sensitivity = COALESCE(?, sensitivity), 
       concerns = COALESCE(?, concerns), 
@@ -373,6 +371,7 @@ app.post("/api/user/profile", requireUserAuth, (req: any, res) => {
     WHERE id = ?
   `).run(
     name || null,
+    language || null,
     skinType || null, 
     sensitivity || null, 
     concerns ? JSON.stringify(concerns) : null, 
@@ -604,12 +603,22 @@ app.get("/api/dashboard/data/:userId", requireUserAuth, (req: any, res) => {
   const prevScore = calculateHealthScore(prevSkinLogs, prevWeeklyCompletionRate);
   const healthScoreTrend = healthScore - prevScore;
 
+  const routineScore = (() => {
+    if (skinTrends.length === 0) return null;
+    const latest = skinTrends[skinTrends.length - 1];
+    const acneScore = Math.max(0, 100 - (latest.acne || 0) * 10);
+    const irritationScore = Math.max(0, 100 - (latest.irritation || 0) * 10);
+    const drynessBalance = Math.max(0, 100 - Math.abs(5 - (latest.dryness || 5)) * 10);
+    const oilinessBalance = Math.max(0, 100 - Math.abs(5 - (latest.oiliness || 5)) * 10);
+    return Math.round((acneScore + irritationScore + drynessBalance + oilinessBalance) / 4);
+  })();
+
   res.json({
     savedRoutines: routines.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
     savedAnalyses: analyses.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
     savedComparisons: comparisons.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
     lastCheckIn,
-    routineScore: 85, // Mock score for now
+    routineScore,
     scansCount: analyses.length,
     streak,
     weeklyCompletionRate,

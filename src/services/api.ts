@@ -59,17 +59,28 @@ export const api = {
       const userSnap = await getDoc(userRef);
       const userData = userSnap.data() || {};
 
+      const reversedTrends = [...skinTrends].reverse();
+      const routineScore = (() => {
+        if (skinTrends.length === 0) return null;
+        const latest = skinTrends[0]; // Ordered by desc, so index 0 is the latest
+        const acneScore = Math.max(0, 100 - (latest.acne || 0) * 10);
+        const irritationScore = Math.max(0, 100 - (latest.irritation || 0) * 10);
+        const drynessBalance = Math.max(0, 100 - Math.abs(5 - (latest.dryness || 5)) * 10);
+        const oilinessBalance = Math.max(0, 100 - Math.abs(5 - (latest.oiliness || 5)) * 10);
+        return Math.round((acneScore + irritationScore + drynessBalance + oilinessBalance) / 4);
+      })();
+
       return {
         savedRoutines: userData.savedRoutines || [],
         savedAnalyses: userData.savedAnalyses || [],
         savedComparisons: userData.savedComparisons || [],
         lastCheckIn: skinTrends[0] || null,
-        routineScore: userData.routineScore || 0,
+        routineScore: routineScore,
         scansCount: (userData.savedAnalyses?.length || 0),
         streak: userData.streak || 0,
         weeklyCompletionRate: userData.weeklyCompletionRate || 0,
         lastRoutine: lastRoutine,
-        skinTrends: skinTrends.reverse(),
+        skinTrends: reversedTrends,
         healthScore: userData.healthScore || 0,
         healthScoreTrend: 0
       };

@@ -2396,7 +2396,7 @@ const RoutineBuilder: React.FC<{
               <div className="flex flex-col items-end">
                 <span className="text-[10px] font-black text-theme-secondary opacity-30 uppercase tracking-widest mb-1">Routine Score</span>
                 <div className="text-5xl font-black text-accent">
-                  {analysis.score}<span className="text-lg opacity-30">/100</span>
+                  <AnimatedScore value={analysis.score} /><span className="text-lg opacity-30">/100</span>
                 </div>
               </div>
             </div>
@@ -3243,7 +3243,7 @@ const RoutineGenerator: React.FC<{
             </button>
             <div className="px-6 py-4 rounded-3xl border-2 border-accent/20 bg-accent/5 flex flex-col items-center justify-center text-accent">
               <span className="text-xs font-bold uppercase tracking-widest opacity-60 mb-1">Routine Score</span>
-              <div className="text-3xl font-black">{result.score}<span className="text-sm opacity-40"> / 100</span></div>
+              <div className="text-3xl font-black"><AnimatedScore value={result.score} /><span className="text-sm opacity-40"> / 100</span></div>
             </div>
             {user && (
               <button 
@@ -5158,22 +5158,86 @@ const SkinHealthScore = ({ score, trend }: { score: number, trend: number }) => 
   );
 };
 
-const CompactSkinHealthScore = ({ score, trend }: { score: number, trend: number }) => {
+const AnimatedScore = ({ value }: { value: number }) => {
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    let startTime: number | null = null;
+    const duration = 1200; // 1.2 seconds duration
+    const startValue = 0;
+    let animationFrameId: number;
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // easeOutExpo easing function
+      const easeOutExpo = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      
+      setCurrent(Math.round(startValue + easeOutExpo * value));
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [value]);
+
+  return <>{current}</>;
+};
+
+const CompactSkinHealthScore = ({ score, trend }: { score: number | null, trend: number }) => {
   const radius = 18;
   const circumference = 2 * Math.PI * radius;
+
+  if (score === null || score === undefined) {
+    return (
+      <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl flex items-center justify-between shadow-sm">
+        <div>
+          <div className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">Skin Health</div>
+          <p className="text-xs text-theme-secondary opacity-60 font-semibold leading-tight max-w-[170px] mt-1">
+            Log your skin to see score
+          </p>
+        </div>
+        <div className="relative w-16 h-16 flex items-center justify-center">
+          <svg className="w-16 h-16 transform -rotate-90">
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="transparent"
+              className="text-theme-secondary/5"
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-xl font-bold text-theme-secondary opacity-30">—</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const offset = circumference - (score / 100) * circumference;
 
   const scoreColor = score >= 70 
     ? "text-emerald-500" 
-    : (score > 45 && score < 70) 
-      ? "text-amber-500" 
-      : "text-rose-500";
+    : (score >= 45 ? "text-amber-500" : "text-rose-500");
 
   return (
     <div className="bg-theme-primary border-2 border-theme-secondary/10 p-6 rounded-3xl flex items-center justify-between shadow-sm">
       <div>
         <div className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">Skin Health</div>
-        <div className={`text-3xl font-black ${scoreColor}`}>{score}%</div>
+        <div className={`text-3xl font-black ${scoreColor}`}>
+          <AnimatedScore value={score} />%
+        </div>
         <div className={`text-[10px] font-bold flex items-center gap-0.5 mt-1 ${trend >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
           {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
           {trend >= 0 ? '+' : ''}{trend}
@@ -5206,7 +5270,9 @@ const CompactSkinHealthScore = ({ score, trend }: { score: number, trend: number
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-[10px] font-black ${scoreColor}`}>{score}</span>
+          <span className={`text-[10px] font-black ${scoreColor}`}>
+            <AnimatedScore value={score} />
+          </span>
         </div>
       </div>
     </div>

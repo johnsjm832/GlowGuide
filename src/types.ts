@@ -159,7 +159,7 @@ export interface DashboardData {
   savedAnalyses: any[];
   savedComparisons: any[];
   lastCheckIn: SkinLog | null;
-  routineScore: number;
+  routineScore: number | null;
   scansCount: number;
   streak: number;
   weeklyCompletionRate: number;
