@@ -139,6 +139,12 @@ export const translations: Record<string, Record<string, string>> = {
     unlockBestSkinDesc: "Get unlimited analyses, long-term tracking, and deeper AI insights.",
     seriousSkincareDesc: "For those who are serious about skin",
     earlyAccessPromo: "Premium features are currently unlocked during early access. Subscription will be required after launch.",
+    save1ActiveRoutine: "Save 1 active routine",
+    overallSkinProgressGraph: "Overall skin progress graph",
+    faceHistory3D: "Interactive 3D-mapped face history (supersedes basic graph)",
+    zoneSpecificTrend: "Zone-specific skin trend sparklines",
+    enlargeableDetailAnalysis: "Enlargeable multi-condition detail analysis",
+    advancedComparison: "Advanced Product Comparison",
   },
   es: {
     branding: "Klenly",
@@ -236,6 +242,12 @@ export const translations: Record<string, Record<string, string>> = {
     unlockBestSkinDesc: "Obtén análisis ilimitados, seguimiento a largo plazo y conocimientos de IA más profundos.",
     seriousSkincareDesc: "Para quienes se toman en serio el cuidado de la piel",
     earlyAccessPromo: "Las funciones premium están actualmente desbloqueadas durante el acceso temprano. Se requerirá suscripción después del lanzamiento.",
+    save1ActiveRoutine: "Guardar 1 rutina activa",
+    overallSkinProgressGraph: "Gráfico de progreso de la piel",
+    faceHistory3D: "Historial de rostro interactivo 3D (reemplaza gráfico básico)",
+    zoneSpecificTrend: "Gráficos de zonas faciales",
+    enlargeableDetailAnalysis: "Análisis ampliable de condiciones",
+    advancedComparison: "Comparación de productos avanzada",
   },
   fr: {
     branding: "Klenly",
@@ -333,6 +345,12 @@ export const translations: Record<string, Record<string, string>> = {
     unlockBestSkinDesc: "Profitez d'analyses illimitées, d'un suivi à long terme et d'analyses IA approfondies.",
     seriousSkincareDesc: "Pour ceux qui prennent soin de leur peau avec sérieux",
     earlyAccessPromo: "Les fonctionnalités premium sont actuellement débloquées pendant l'accès anticipé. Un abonnement sera requis après le lancement.",
+    save1ActiveRoutine: "Enregistrer 1 routine active",
+    overallSkinProgressGraph: "Graphique d'évolution globale de la peau",
+    faceHistory3D: "Historique du visage interactif 3D (remplace le graphique de base)",
+    zoneSpecificTrend: "Graphiques d'évolution par zone du visage",
+    enlargeableDetailAnalysis: "Analyse détaillée et zoomable des conditions",
+    advancedComparison: "Comparaison de produits avancée",
   },
   ko: {
     branding: "Klenly",
@@ -430,6 +448,12 @@ export const translations: Record<string, Record<string, string>> = {
     unlockBestSkinDesc: "무제한 성분 분석, 장기적인 데이터 추적, 정교한 AI 인공지능 추천이 제공됩니다.",
     seriousSkincareDesc: "피부 건강 관리에 진심인 분들을 위한 혜택",
     earlyAccessPromo: "현재 얼리 액세스 이벤트 기간 동안 모든 프리미엄 기능을 무료로 사용해 볼 수 있습니다. 정식 출시 이후 구독이 필요할 수 있습니다.",
+    save1ActiveRoutine: "활성 루틴 1개 저장",
+    overallSkinProgressGraph: "전반적인 피부 개선도 그래프",
+    faceHistory3D: "대화형 3D 페이스 매핑 히스토리 (기본 그래프 대체)",
+    zoneSpecificTrend: "얼굴 부위별 스킨 트렌드 스파크라인",
+    enlargeableDetailAnalysis: "멀티 컨디션 세부 정보 확대 분석",
+    advancedComparison: "고급 제품 성분 비교 분석",
   }
 };
 
@@ -1269,15 +1293,15 @@ const SubscriptionModal: React.FC<{
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{translate('analyze', language)} / {translate('compare', language) === "Comparar" ? "Código de Barras" : translate('compare', language) === "자세히 알아보기" ? "바코드" : "Barcode"} <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 rounded">3/day</span></span>
+                  <span>{translate('analyze', language)} / {language === 'es' ? "Código de Barras" : language === 'ko' ? "바코드" : language === 'fr' ? "Code-barres" : "Barcode"} <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 rounded">3/day</span></span>
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{translate('language') === "Idioma" ? "Guardar 1 rutina activa" : "Save 1 active routine"}</span>
+                  <span>{translate('save1ActiveRoutine', language)}</span>
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{translate('language') === "Idioma" ? "Gráfico de progreso de la piel" : "Overall skin progress graph"}</span>
+                  <span>{translate('overallSkinProgressGraph', language)}</span>
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-80 leading-tight">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
@@ -1304,19 +1328,19 @@ const SubscriptionModal: React.FC<{
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
                   <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
-                  <span>{translate('language') === "Idioma" ? "Historial de rostro interactivo 3D (reemplaza gráfico básico)" : "Interactive 3D-mapped face history (supersedes basic graph)"}</span>
+                  <span>{translate('faceHistory3D', language)}</span>
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
                   <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
-                  <span>{translate('language') === "Idioma" ? "Gráficos de zonas faciales" : "Zone-specific skin trend sparklines"}</span>
+                  <span>{translate('zoneSpecificTrend', language)}</span>
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
                   <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
-                  <span>{translate('language') === "Idioma" ? "Análisis ampliable de condiciones" : "Enlargeable multi-condition detail analysis"}</span>
+                  <span>{translate('enlargeableDetailAnalysis', language)}</span>
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
                   <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
-                  <span>{translate('language') === "Idioma" ? "Comparación de productos avanzada" : "Advanced Product Comparison"}</span>
+                  <span>{translate('advancedComparison', language)}</span>
                 </li>
                 <li className="flex items-start gap-2 text-xs font-semibold text-theme-secondary opacity-85 leading-tight">
                   <Leaf className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
@@ -1400,13 +1424,13 @@ const SubscriptionModal: React.FC<{
         <div className="pt-6 flex flex-col items-center gap-3">
           <p className="text-[9px] font-black text-theme-secondary opacity-20 uppercase tracking-[0.2em]">{translate('featuredOn', language)}</p>
           <a 
-            href="https://www.producthunt.com/products/glowguide-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-glowguide-beta" 
+            href="https://www.producthunt.com/products/klenly-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-klenly-beta" 
             target="_blank" 
             rel="noopener noreferrer"
             className="transition-transform hover:scale-105 active:scale-95 duration-300 opacity-80 hover:opacity-100"
           >
             <img 
-              alt="GlowGuide Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
+              alt="Klenly Beta - Analyze your skincare routine and see what actually works | Product Hunt" 
               width="200" 
               height="43" 
               src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1126955&theme=light&t=1776542664167"
@@ -2165,7 +2189,7 @@ const RoutineBuilder: React.FC<{
     try {
       const dataUrl = await toPng(shareCardRef.current, { cacheBust: true });
       const link = document.createElement('a');
-      link.download = `glowguide-routine-${new Date().getTime()}.png`;
+      link.download = `klenly-routine-${new Date().getTime()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -3026,7 +3050,7 @@ const Home: React.FC<{ onStartRoutine: () => void, onLearnMore: () => void, lang
 
       <div className="mt-12 flex justify-center">
         <a 
-          href="https://www.producthunt.com/products/glowguide-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-glowguide-beta" 
+          href="https://www.producthunt.com/products/klenly-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-klenly-beta" 
           target="_blank" 
           rel="noopener noreferrer"
           className="transition-transform hover:scale-105 active:scale-95 duration-300"
@@ -3123,7 +3147,7 @@ const RoutineGenerator: React.FC<{
     try {
       const dataUrl = await toPng(shareCardRef.current, { cacheBust: true });
       const link = document.createElement('a');
-      link.download = `glowguide-routine-${new Date().getTime()}.png`;
+      link.download = `klenly-routine-${new Date().getTime()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -3645,6 +3669,7 @@ const IngredientAnalyzer: React.FC<{
   const [isFetchingBarcode, setIsFetchingBarcode] = useState(false);
   const [showManualFields, setShowManualFields] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [isExtractingLabel, setIsExtractingLabel] = useState(false);
 
   useEffect(() => {
     const fetchUsage = async () => {
@@ -3706,6 +3731,10 @@ const IngredientAnalyzer: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.ingredients || formData.ingredients.trim() === "") {
+      setError("Ingredients cannot be empty. Please enter the ingredient list or scan the product label.");
+      return;
+    }
     triggerAnalysis(formData);
   };
 
@@ -3733,6 +3762,35 @@ const IngredientAnalyzer: React.FC<{
     handleBarcodeSearch(barcode);
   };
 
+  const handleLabelScan = async (file: File) => {
+    setIsExtractingLabel(true);
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch("/api/gemini/extract-ingredients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: reader.result })
+        });
+        const data = await res.json();
+        if (data.ingredients) {
+          const updated = { ...formData, ingredients: data.ingredients };
+          setFormData(updated);
+          setShowManualFields(true);
+          triggerAnalysis(updated);
+        } else {
+          setError("Couldn't read the label. Try a clearer photo with the ingredients list fully visible.");
+        }
+      } catch {
+        setError("Failed to read label. Please try again.");
+      } finally {
+        setIsExtractingLabel(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleBarcodeSearch = async (barcode: string) => {
     if (!barcode) return;
     setIsFetchingBarcode(true);
@@ -3745,15 +3803,16 @@ const IngredientAnalyzer: React.FC<{
           ingredients: product.ingredientsText || ""
         };
         setFormData(newFormData);
-        if (product.ingredientsText) {
+        if (!newFormData.ingredients || newFormData.ingredients.trim() === "") {
           setShowManualFields(true);
-          triggerAnalysis(newFormData);
-        } else {
-          setShowManualFields(true);
-          setError("Product found, but no ingredients text was available. Please enter them manually if you have them.");
+          setError("Product found, but no ingredients list available. Enter them manually or photograph the label below.");
+          setIsFetchingBarcode(false);
+          return;
         }
+        setShowManualFields(true);
+        triggerAnalysis(newFormData);
       } else {
-        setError("Product not found in Open Beauty Facts database. Try another barcode or manual input.");
+        setError("Product not found. Try entering the barcode from a different angle, or type the ingredients manually.");
       }
     } catch (err) {
       setError("Failed to fetch product details. Please try again.");
@@ -4174,6 +4233,40 @@ const IngredientAnalyzer: React.FC<{
                     onChange={e => setFormData({...formData, ingredients: e.target.value})}
                   />
                 </div>
+
+                {(!formData.ingredients || formData.ingredients.trim() === "") && (
+                  <div className="space-y-2">
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      id="label-camera-input"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLabelScan(file);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={isExtractingLabel}
+                      onClick={() => document.getElementById('label-camera-input')?.click()}
+                      className="w-full flex flex-col items-center justify-center p-5 border-2 border-dashed border-theme-secondary/20 hover:border-accent/40 rounded-2xl bg-theme-secondary/5 hover:bg-theme-secondary/10 transition-all text-center group"
+                    >
+                      <div className="flex items-center gap-2 text-theme-secondary font-bold text-sm">
+                        {isExtractingLabel ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin text-accent" />
+                            <span>Reading label...</span>
+                          </>
+                        ) : (
+                          <span>📷 Photograph Ingredient Label</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-theme-secondary/50 font-medium mt-1">Point your camera at the back of the product.</span>
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -4355,6 +4448,30 @@ const ThemeSettings: React.FC<{ user: User, darkMode: boolean, onUpdateTheme: (t
 const DetailModal = ({ item, type, onClose, language = "en" }: { item: any, type: 'routine' | 'analysis' | 'comparison', onClose: () => void, language?: string }) => {
   if (!item) return null;
 
+  const renderChipValue = (val: any) => {
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object' && val !== null) {
+      return val.name || val.title || val.value || JSON.stringify(val);
+    }
+    return String(val);
+  };
+
+  const strengths = Array.isArray(item.strengths)
+    ? item.strengths
+    : typeof item.strengths === 'string'
+      ? item.strengths.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+
+  const potentialConcerns = (() => {
+    const val = item.potentialConcerns || item.concerns;
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return [];
+  })();
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
       <motion.div 
@@ -4370,10 +4487,10 @@ const DetailModal = ({ item, type, onClose, language = "en" }: { item: any, type
           <div>
             <h3 className="text-2xl font-black text-theme-secondary mb-2 tracking-tight">
               {type === 'routine' && `Routine Details`}
-              {type === 'analysis' && `Analysis: ${item.productName}`}
-              {type === 'comparison' && `Comparison: ${item.productA.name} vs ${item.productB.name}`}
+              {type === 'analysis' && `Analysis: ${item.productName || 'Unnamed Product'}`}
+              {type === 'comparison' && `Comparison: ${item.productA?.name || 'Product A'} vs ${item.productB?.name || 'Product B'}`}
             </h3>
-            <p className="text-xs font-bold opacity-40 uppercase tracking-widest">Saved on {new Date(item.createdAt).toLocaleDateString()}</p>
+            <p className="text-xs font-bold opacity-40 uppercase tracking-widest">Saved on {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-theme-secondary/5 rounded-full transition-all">
             <X className="w-6 h-6 text-theme-secondary opacity-40" />
@@ -4385,9 +4502,9 @@ const DetailModal = ({ item, type, onClose, language = "en" }: { item: any, type
             <div className="space-y-6">
               {(item.safetyScore || item.compatibilityScore || item.balanceScore) && (
                 <RoutineScoreBreakdown 
-                  safety={item.safetyScore} 
-                  compatibility={item.compatibilityScore} 
-                  balance={item.balanceScore} 
+                  safety={item.safetyScore || 0} 
+                  compatibility={item.compatibilityScore || 0} 
+                  balance={item.balanceScore || 0} 
                   language={language}
                 />
               )}
@@ -4403,11 +4520,15 @@ const DetailModal = ({ item, type, onClose, language = "en" }: { item: any, type
                 <div className="p-6 bg-theme-secondary/5 rounded-3xl">
                   <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">Klenly Tips</h4>
                   <ul className="space-y-2">
-                    {item.tips.map((tip: string, i: number) => (
+                    {Array.isArray(item.tips) ? item.tips.map((tip: string, i: number) => (
                       <li key={i} className="text-sm text-theme-secondary opacity-70 flex gap-2">
                         <span className="text-accent">•</span> {tip}
                       </li>
-                    ))}
+                    )) : typeof item.tips === 'string' ? (
+                      <li className="text-sm text-theme-secondary opacity-70 flex gap-2">
+                        <span className="text-accent">•</span> {item.tips}
+                      </li>
+                    ) : null}
                   </ul>
                 </div>
               )}
@@ -4418,9 +4539,9 @@ const DetailModal = ({ item, type, onClose, language = "en" }: { item: any, type
             <div className="space-y-6">
               {(item.safetyScore || item.compatibilityScore || item.balanceScore) && (
                 <RoutineScoreBreakdown 
-                  safety={item.safetyScore} 
-                  compatibility={item.compatibilityScore} 
-                  balance={item.balanceScore} 
+                  safety={item.safetyScore || 0} 
+                  compatibility={item.compatibilityScore || 0} 
+                  balance={item.balanceScore || 0} 
                   language={language}
                 />
               )}
@@ -4431,22 +4552,22 @@ const DetailModal = ({ item, type, onClose, language = "en" }: { item: any, type
                 </div>
                 <div className="p-6 bg-theme-secondary/5 rounded-3xl">
                   <div className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">Suitable For</div>
-                  <div className="text-sm font-bold text-theme-secondary">{item.suitableFor}</div>
+                  <div className="text-sm font-bold text-theme-secondary">{item.suitableFor || 'N/A'}</div>
                 </div>
               </div>
               <div className="p-6 bg-theme-secondary/5 rounded-3xl">
                 <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">Key Benefits</h4>
                 <div className="flex flex-wrap gap-2">
-                  {item.strengths.map((s: string, i: number) => (
-                    <span key={i} className="px-3 py-1 bg-accent/10 text-accent text-[10px] font-black uppercase tracking-widest rounded-full">{s}</span>
+                  {strengths.map((s: any, i: number) => (
+                    <span key={i} className="px-3 py-1 bg-accent/10 text-accent text-[10px] font-black uppercase tracking-widest rounded-full">{renderChipValue(s)}</span>
                   ))}
                 </div>
               </div>
               <div className="p-6 bg-theme-secondary/5 rounded-3xl">
                 <h4 className="text-xs font-black text-accent uppercase tracking-widest mb-4">Potential Concerns</h4>
                 <div className="flex flex-wrap gap-2">
-                  {item.concerns.map((c: string, i: number) => (
-                    <span key={i} className="px-3 py-1 bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-full">{c}</span>
+                  {potentialConcerns.map((c: any, i: number) => (
+                    <span key={i} className="px-3 py-1 bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-full">{renderChipValue(c)}</span>
                   ))}
                 </div>
               </div>
@@ -5333,7 +5454,7 @@ const SavedItems = ({
               {data.savedRoutines.map((r, idx) => (
                 <div key={idx} className="p-4 bg-theme-primary border-2 border-theme-secondary/10 rounded-2xl group hover:border-theme-secondary/30 transition-all">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="font-bold text-theme-secondary">Routine from {new Date(r.createdAt).toLocaleDateString()}</div>
+                    <div className="font-bold text-theme-secondary">Routine from {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A'}</div>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                         <button 
@@ -5371,8 +5492,8 @@ const SavedItems = ({
               {data.savedAnalyses.map((a, idx) => (
                 <div key={idx} className="p-4 bg-theme-primary border-2 border-theme-secondary/10 rounded-2xl flex justify-between items-center group hover:border-theme-secondary/30 transition-all">
                   <div>
-                    <div className="font-bold text-theme-secondary">{a.productName}</div>
-                    <div className="text-xs opacity-50">{new Date(a.createdAt).toLocaleDateString()}</div>
+                    <div className="font-bold text-theme-secondary">{a.productName || 'Unnamed Product'}</div>
+                    <div className="text-xs opacity-50">{a.createdAt ? new Date(a.createdAt).toLocaleDateString() : 'N/A'}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -5390,7 +5511,7 @@ const SavedItems = ({
                       </button>
                     </div>
                     <div className="text-xs font-bold text-theme-secondary opacity-70 bg-theme-secondary/5 px-3 py-1 rounded-full">
-                      {a.compatibilityScore ? `${a.compatibilityScore}/100` : a.suitableFor.split(',')[0]}
+                      {a.compatibilityScore !== undefined ? `${a.compatibilityScore}/100` : (a.suitableFor ? a.suitableFor.split(',')[0] : 'N/A')}
                     </div>
                   </div>
                 </div>
@@ -5601,44 +5722,8 @@ const Dashboard: React.FC<{
 
   const isPremium = user?.tier === 'premium' || EARLY_ACCESS_MODE;
   const maxDays = isPremium ? 90 : 30;
-  const totalDaysTracked = isPremium ? 36 : 24;
-  const streak = isPremium ? 12 : 5;
-
-  const chartData = React.useMemo(() => {
-    const list = [];
-    const baseDate = new Date();
-    const days = maxDays;
-    // Generate simulated items representing high-quality visual data
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(baseDate.getDate() - i);
-      
-      const progress = (days - 1 - i) / (days - 1 || 1); // 0 to 1
-      
-      // Hydration: starts around 45% (lower), climbs up gracefully to ~82% as skin barrier recovers
-      const hydrationBase = 42 + (progress * 38); 
-      const hydrationNoise = Math.sin((days - 1 - i) * 1.0) * 3 + Math.cos((days - 1 - i) * 0.45) * 2;
-      let hydration = Math.round(Math.min(100, Math.max(0, hydrationBase + hydrationNoise)));
-      
-      // Acne: starts around 65% (moderate breakout), falls down steadily to ~18% with continuous tracking
-      const acneBase = 65 - (progress * 46);
-      const acneNoise = Math.cos((days - 1 - i) * 1.2) * 4 + Math.sin((days - 1 - i) * 0.6) * 2;
-      let acne = Math.round(Math.min(100, Math.max(0, acneBase + acneNoise)));
-
-      // Real-time link: let the latest day respond to current screen slider modifications!
-      if (i === 0) {
-        hydration = Math.round((10 - checkInData.dryness) * 10);
-        acne = Math.round(checkInData.acne * 10);
-      }
-
-      list.push({
-        date: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-        Hydration: hydration,
-        Acne: acne
-      });
-    }
-    return list;
-  }, [checkInData.dryness, checkInData.acne, maxDays]);
+  const totalDaysTracked = data?.totalDaysTracked ?? (isPremium ? 36 : 24);
+  const streak = data?.streak ?? (isPremium ? 12 : 5);
 
   if (!user) {
     return (
@@ -5924,7 +6009,7 @@ const Dashboard: React.FC<{
           {/* Left Column (Streak & Logging) */}
           <div className="lg:col-span-4 space-y-6">
             {/* Routine score & health score card at top of basic dashboard */}
-            <CompactSkinHealthScore score={data?.routineScore || 82} trend={data?.healthScoreTrend || 3} />
+            <CompactSkinHealthScore score={data?.routineScore} trend={data?.healthScoreTrend || 0} />
 
             {/* CURRENT STREAK CARD */}
             <div className="bg-theme-primary border-2 border-theme-secondary/10 rounded-3xl p-6 shadow-sm hover:border-accent/20 transition-all duration-300">
@@ -6006,7 +6091,7 @@ const Dashboard: React.FC<{
               {/* Compact track completion rate bubble in the top right corner */}
               <div className="absolute top-5 right-5 flex items-center gap-1.5 bg-theme-secondary/5 hover:bg-theme-secondary/10 border border-theme-secondary/10 px-2.5 py-1 rounded-full text-[10px] font-bold text-accent transition-all cursor-default select-none group/completion z-20">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                <span>Completion: {86}%</span>
+                <span>Completion: {data?.weeklyCompletionRate ?? 0}%</span>
                 
                 {/* Compact popover on hover */}
                 <div className="absolute right-0 top-full mt-2 w-48 bg-zinc-950 border border-white/10 rounded-2xl p-3 shadow-xl scale-0 group-hover/completion:scale-100 transition-all duration-200 origin-top-right z-30 text-left pointer-events-none">
@@ -6014,15 +6099,15 @@ const Dashboard: React.FC<{
                   <div className="space-y-1.5 text-[10px]">
                     <div className="flex justify-between items-center pb-1 border-b border-theme-secondary/5">
                       <span className="text-theme-secondary opacity-65">This Week</span>
-                      <span className="font-extrabold text-accent">{86}%</span>
+                      <span className="font-extrabold text-accent">{data?.weeklyCompletionRate ?? 0}%</span>
                     </div>
                     <div className="flex justify-between items-center pb-1 border-b border-theme-secondary/5">
                       <span className="text-theme-secondary opacity-65">Last Week</span>
-                      <span className="font-bold text-theme-secondary">{79}%</span>
+                      <span className="font-bold text-theme-secondary">{data?.weeklyCompletionRate ?? 0}%</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-theme-secondary opacity-65">Monthly Avg</span>
-                      <span className="font-bold text-theme-secondary">{71}%</span>
+                      <span className="font-bold text-theme-secondary">{0}%</span>
                     </div>
                   </div>
                 </div>
@@ -6344,7 +6429,7 @@ const Dashboard: React.FC<{
       <div className="mt-20 pt-10 border-t border-theme-secondary/5 flex flex-col items-center gap-4 text-center">
         <p className="text-[10px] font-black text-theme-secondary opacity-30 uppercase tracking-[0.2em]">Featured On</p>
         <a 
-          href="https://www.producthunt.com/products/glowguide-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-glowguide-beta" 
+          href="https://www.producthunt.com/products/klenly-beta?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-klenly-beta" 
           target="_blank" 
           rel="noopener noreferrer"
           className="transition-transform hover:scale-105 active:scale-95 duration-300"

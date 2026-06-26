@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Camera, X, RefreshCw, Clock, ChevronRight } from 'lucide-react';
 
 interface ScannerProps {
@@ -16,11 +15,12 @@ interface RecentScanItem {
 }
 
 export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animFrameRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState<RecentScanItem[]>([]);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const regionId = "reader";
 
   const onScanSuccessRef = useRef(onScanSuccess);
   useEffect(() => {
@@ -193,67 +193,69 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
   };
 
   useEffect(() => {
-    scannerRef.current = new Html5Qrcode(regionId);
+    let stopped = false;
 
-    const startScanner = async () => {
+    const start = async () => {
       try {
+        if (!("BarcodeDetector" in window)) {
+          setError("Barcode scanning is not supported in this browser. Please enter the barcode manually.");
+          return;
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+
         setIsScanning(true);
-        const readerEl = document.getElementById(regionId);
-        const containerWidth = readerEl?.clientWidth || 300;
-        const containerHeight = readerEl?.clientHeight || 300;
-        const boxWidth = Math.min(260, containerWidth - 40);
-        const boxHeight = Math.min(150, Math.floor(boxWidth * 0.55));
 
-        await scannerRef.current?.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: boxWidth, height: boxHeight },
-            formatsToSupport: [
-              Html5QrcodeSupportedFormats.EAN_13,
-              Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.UPC_A,
-              Html5QrcodeSupportedFormats.UPC_E,
-            ]
-          },
-          (decodedText) => {
-            if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-              try {
-                window.navigator.vibrate([50, 45, 50]);
-              } catch (e) {}
+        // @ts-ignore
+        const detector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39"]
+        });
+
+        const scan = async () => {
+          if (stopped || !videoRef.current) return;
+          try {
+            const barcodes = await detector.detect(videoRef.current);
+            if (barcodes.length > 0) {
+              const code = barcodes[0].rawValue;
+              stop();
+              if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+                try {
+                  window.navigator.vibrate([50, 45, 50]);
+                } catch (e) {}
+              }
+              playSuccessSound();
+              saveRecentScan(code);
+              onScanSuccessRef.current(code);
+              return;
             }
-            playSuccessSound();
-            saveRecentScan(decodedText);
-            onScanSuccessRef.current(decodedText);
-          },
-          (errorMessage) => {
-            // Silently handle scan failures (happens every frame if no barcode)
-          }
-        );
-      } catch (err) {
-        console.error("Scanner start error:", err);
-        setError("Could not start camera. Please ensure you have given permission.");
-        setIsScanning(false);
+          } catch {}
+          animFrameRef.current = requestAnimationFrame(scan);
+        };
+
+        animFrameRef.current = requestAnimationFrame(scan);
+      } catch (err: any) {
+        if (!stopped) setError("Could not access camera. Please allow camera permission and try again.");
       }
     };
 
-    startScanner();
-
-    return () => {
-      stopScanner();
+    const stop = () => {
+      stopped = true;
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      setIsScanning(false);
     };
+
+    start();
+    return () => stop();
   }, []);
-
-  const stopScanner = async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
-      } catch (err) {
-        console.error("Scanner stop error:", err);
-      }
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-[110] bg-zinc-950/80 backdrop-blur-xl flex flex-col items-center justify-center p-4">
@@ -281,7 +283,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onClose }) => {
         </div>
 
         <div className="relative aspect-square sm:aspect-video bg-black flex items-center justify-center overflow-visible">
-          <div id={regionId} className="w-full h-full relative z-0"></div>
+          <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
           
           {!isScanning && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 gap-3">

@@ -163,6 +163,9 @@ export interface DashboardData {
   scansCount: number;
   streak: number;
   weeklyCompletionRate: number;
+  prevWeeklyCompletionRate?: number;
+  monthlyCompletionRate?: number;
+  totalDaysTracked?: number;
   lastRoutine: RoutineLog | null;
   skinTrends: SkinLog[];
   healthScore: number;

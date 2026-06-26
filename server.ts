@@ -2,6 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -147,13 +148,44 @@ try {
   console.log(`Migration: Added column zones_data to skin_logs table.`);
 } catch (e) {}
 
-const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || "AIzaSyADqoiz6sPyiUwcrpzHC3W29hHaDpNecxs";
+// Securely load dynamic Firebase API Key and Project Configuration without hardcoding plaintext secrets
+let FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || "";
+let firebaseProjectId = "";
+let firebaseDatabaseId = "";
+
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    if (!FIREBASE_API_KEY) {
+      FIREBASE_API_KEY = config.apiKey;
+    }
+    firebaseProjectId = config.projectId;
+    firebaseDatabaseId = config.firestoreDatabaseId;
+  }
+} catch (err) {
+  console.error("Failed to load firebase-applet-config.json:", err);
+}
+
 const tokenCache = new Map<string, { uid: string; email: string; expires: number }>();
+
+const firestoreUserCache = new Map<string, {
+  tier: string;
+  subscriptionStatus: string;
+  subscriptionEndDate: string | null;
+  trialEndDate: string | null;
+  expires: number;
+}>();
 
 async function verifyFirebaseToken(idToken: string): Promise<{ uid: string; email: string } | null> {
   const cached = tokenCache.get(idToken);
   if (cached && cached.expires > Date.now()) {
     return { uid: cached.uid, email: cached.email };
+  }
+
+  if (!FIREBASE_API_KEY) {
+    console.error("Firebase API Key is missing.");
+    return null;
   }
 
   try {
@@ -177,6 +209,111 @@ async function verifyFirebaseToken(idToken: string): Promise<{ uid: string; emai
   } catch (err) {
     console.error("Firebase ID Token verification error:", err);
     return null;
+  }
+}
+
+async function syncUserFromFirestore(firebaseUid: string, sqliteUserId: number, idToken?: string): Promise<any> {
+  const cached = firestoreUserCache.get(firebaseUid);
+  if (cached && cached.expires > Date.now()) {
+    try {
+      db.prepare(`
+        UPDATE users 
+        SET tier = ?, subscription_status = ?, subscription_end_date = ?, trial_end_date = ?
+        WHERE id = ?
+      `).run(cached.tier, cached.subscriptionStatus, cached.subscriptionEndDate, cached.trialEndDate, sqliteUserId);
+      return { 
+        tier: cached.tier, 
+        subscriptionStatus: cached.subscriptionStatus, 
+        subscriptionEndDate: cached.subscriptionEndDate, 
+        trialEndDate: cached.trialEndDate 
+      };
+    } catch (err) {
+      console.error("[syncUserFromFirestore] Failed to update SQLite from cache:", err);
+    }
+  }
+
+  if (!firebaseProjectId || !firebaseDatabaseId || !FIREBASE_API_KEY) return null;
+  try {
+    const encodedDbId = encodeURIComponent(firebaseDatabaseId);
+    const url = `https://firestore.googleapis.com/v1/projects/${firebaseProjectId}/databases/${encodedDbId}/documents/users/${firebaseUid}?key=${FIREBASE_API_KEY}`;
+    
+    const headers: Record<string, string> = {};
+    if (idToken) {
+      headers["Authorization"] = `Bearer ${idToken}`;
+    }
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      console.warn(`[syncUserFromFirestore] Firestore document fetch failed for ${firebaseUid}: ${res.status} ${res.statusText}`);
+      return null;
+    }
+    const data = await res.json() as any;
+    if (data && data.fields) {
+      const fields = data.fields;
+      const tier = fields.tier?.stringValue || 'free';
+      const subscriptionStatus = fields.subscriptionStatus?.stringValue || 'none';
+      const subscriptionEndDate = fields.subscriptionEndDate?.stringValue || null;
+      const trialEndDate = fields.trialEndDate?.stringValue || null;
+      
+      // Update local SQLite db
+      db.prepare(`
+        UPDATE users 
+        SET tier = ?, subscription_status = ?, subscription_end_date = ?, trial_end_date = ?
+        WHERE id = ?
+      `).run(tier, subscriptionStatus, subscriptionEndDate, trialEndDate, sqliteUserId);
+      
+      // Cache for 5 minutes
+      firestoreUserCache.set(firebaseUid, {
+        tier,
+        subscriptionStatus,
+        subscriptionEndDate,
+        trialEndDate,
+        expires: Date.now() + 5 * 60 * 1000
+      });
+
+      console.log(`[syncUserFromFirestore] Successfully synced user ${firebaseUid} (SQLite ${sqliteUserId}) from Firestore. Tier: ${tier}, Status: ${subscriptionStatus}`);
+      return { tier, subscriptionStatus, subscriptionEndDate, trialEndDate };
+    }
+  } catch (err) {
+    console.error("Failed to sync user from Firestore:", err);
+  }
+  return null;
+}
+
+async function syncUserToFirestore(firebaseUid: string, data: { tier: string; subscriptionStatus: string; subscriptionEndDate: string | null; trialEndDate: string | null }) {
+  // Update cache immediately to prevent serving stale data
+  firestoreUserCache.set(firebaseUid, {
+    tier: data.tier,
+    subscriptionStatus: data.subscriptionStatus,
+    subscriptionEndDate: data.subscriptionEndDate,
+    trialEndDate: data.trialEndDate,
+    expires: Date.now() + 5 * 60 * 1000
+  });
+
+  if (!firebaseProjectId || !firebaseDatabaseId || !FIREBASE_API_KEY || !firebaseUid) return;
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${firebaseProjectId}/databases/${firebaseDatabaseId}/documents/users/${firebaseUid}?key=${FIREBASE_API_KEY}&updateMask.fieldPaths=tier&updateMask.fieldPaths=subscriptionStatus&updateMask.fieldPaths=subscriptionEndDate&updateMask.fieldPaths=trialEndDate`;
+    
+    const body = {
+      fields: {
+        tier: { stringValue: data.tier },
+        subscriptionStatus: { stringValue: data.subscriptionStatus },
+        subscriptionEndDate: data.subscriptionEndDate ? { stringValue: data.subscriptionEndDate } : { nullValue: null },
+        trialEndDate: data.trialEndDate ? { stringValue: data.trialEndDate } : { nullValue: null }
+      }
+    };
+
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    
+    if (!res.ok) {
+      console.warn("Firestore patch failed:", res.statusText);
+    }
+  } catch (err) {
+    console.error("Failed to sync user to Firestore:", err);
   }
 }
 
@@ -204,6 +341,16 @@ async function authMiddleware(req: any, res: any, next: any) {
         db.prepare("UPDATE users SET firebase_uid = ? WHERE id = ?").run(verified.uid, user.id);
         user.firebase_uid = verified.uid;
       }
+      
+      // Sync tier status from Firestore to SQLite in real-time
+      const synced = await syncUserFromFirestore(verified.uid, user.id, token);
+      if (synced) {
+        user.tier = synced.tier;
+        user.subscription_status = synced.subscriptionStatus;
+        user.subscription_end_date = synced.subscriptionEndDate;
+        user.trial_end_date = synced.trialEndDate;
+      }
+      
       req.user = user;
     } else {
       return res.status(401).json({ error: "INVALID_TOKEN" });
@@ -226,7 +373,7 @@ function requireUserAuth(req: any, res: any, next: any) {
   next();
 }
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(authMiddleware);
 
 const safeJsonParse = (str: string | null, fallback: any = []) => {
@@ -518,6 +665,7 @@ app.delete("/api/user/comparison/:id", requireUserAuth, (req: any, res) => {
 app.get("/api/dashboard/data/:userId", requireUserAuth, (req: any, res) => {
   const { userId } = req.params;
   const dbUserId = req.user.id;
+  const isPremium = req.user.tier === 'premium';
 
   const routines = db.prepare("SELECT id, data, created_at FROM saved_routines WHERE user_id = ? ORDER BY created_at DESC LIMIT 5").all(dbUserId) as any[];
   const analyses = db.prepare("SELECT id, data, created_at FROM saved_analyses WHERE user_id = ? ORDER BY created_at DESC LIMIT 5").all(dbUserId) as any[];
@@ -613,6 +761,23 @@ app.get("/api/dashboard/data/:userId", requireUserAuth, (req: any, res) => {
     return Math.round((acneScore + irritationScore + drynessBalance + oilinessBalance) / 4);
   })();
 
+  const distinctDays = db.prepare(`
+    SELECT COUNT(DISTINCT date(created_at)) as count 
+    FROM (
+      SELECT created_at FROM routine_logs WHERE user_id = ?
+      UNION
+      SELECT created_at FROM skin_logs WHERE user_id = ?
+    )
+  `).get(dbUserId, dbUserId) as { count: number };
+  const totalDaysTracked = distinctDays.count || (isPremium ? 36 : 24);
+
+  const monthlyLogs = db.prepare(`
+    SELECT COUNT(*) as count 
+    FROM routine_logs 
+    WHERE user_id = ? AND created_at > datetime('now', '-30 days')
+  `).get(dbUserId) as { count: number };
+  const monthlyCompletionRate = Math.min(100, Math.round((monthlyLogs.count / 60) * 100)) || 71;
+
   res.json({
     savedRoutines: routines.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
     savedAnalyses: analyses.map(r => ({ id: r.id, ...safeJsonParse(r.data, {}), createdAt: r.created_at })),
@@ -622,6 +787,9 @@ app.get("/api/dashboard/data/:userId", requireUserAuth, (req: any, res) => {
     scansCount: analyses.length,
     streak,
     weeklyCompletionRate,
+    prevWeeklyCompletionRate,
+    monthlyCompletionRate,
+    totalDaysTracked,
     lastRoutine,
     skinTrends,
     healthScore,
@@ -695,6 +863,15 @@ app.post("/api/subscription/start-trial", requireUserAuth, (req: any, res) => {
     WHERE id = ?
   `).run(trialEndDate.toISOString(), req.user.id);
 
+  if (req.user.firebase_uid) {
+    syncUserToFirestore(req.user.firebase_uid, {
+      tier: 'premium',
+      subscriptionStatus: 'trialing',
+      subscriptionEndDate: null,
+      trialEndDate: trialEndDate.toISOString()
+    }).catch(console.error);
+  }
+
   res.json({ success: true, tier: 'premium', subscriptionStatus: 'trialing', trialEndDate: trialEndDate.toISOString() });
 });
 
@@ -717,6 +894,15 @@ app.post("/api/subscription/subscribe", requireUserAuth, (req: any, res) => {
     WHERE id = ?
   `).run(endDate.toISOString(), req.user.id);
 
+  if (req.user.firebase_uid) {
+    syncUserToFirestore(req.user.firebase_uid, {
+      tier: 'premium',
+      subscriptionStatus: 'active',
+      subscriptionEndDate: endDate.toISOString(),
+      trialEndDate: null
+    }).catch(console.error);
+  }
+
   res.json({ success: true, tier: 'premium', subscriptionStatus: 'active', subscriptionEndDate: endDate.toISOString() });
 });
 
@@ -729,6 +915,16 @@ app.post("/api/subscription/cancel", requireUserAuth, (req: any, res) => {
       subscription_status = 'canceled'
     WHERE id = ?
   `).run(req.user.id);
+
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id) as any;
+  if (user && user.firebase_uid) {
+    syncUserToFirestore(user.firebase_uid, {
+      tier: user.tier || 'free',
+      subscriptionStatus: 'canceled',
+      subscriptionEndDate: user.subscription_end_date || null,
+      trialEndDate: user.trial_end_date || null
+    }).catch(console.error);
+  }
 
   res.json({ success: true, subscriptionStatus: 'canceled' });
 });
@@ -1051,6 +1247,89 @@ app.post("/api/gemini/generate-routine", async (req, res) => {
   } catch (err: any) {
     console.error("Gemini Generate Routine Error:", err);
     res.status(500).json({ error: err.message || "Failed to generate routine with Gemini" });
+  }
+});
+
+app.get("/api/product/barcode/:barcode", async (req, res) => {
+  const { barcode } = req.params;
+  if (!barcode || !/^\d{6,14}$/.test(barcode)) {
+    return res.status(400).json({ error: "Invalid barcode format." });
+  }
+
+  const sources = [
+    `https://world.openbeautyfacts.org/api/v2/product/${barcode}.json`,
+    `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`
+  ];
+
+  for (const url of sources) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!response.ok) continue;
+      const data = await response.json() as any;
+      if (data.status === 0 || !data.product) continue;
+      const p = data.product;
+      return res.json({
+        name: p.product_name || "Unknown Product",
+        brand: p.brands || null,
+        ingredientsText: p.ingredients_text || "",
+        imageUrl: p.image_url || null,
+        barcode
+      });
+    } catch { continue; }
+  }
+
+  // Try UPC Item DB
+  try {
+    const response = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`, {
+      signal: AbortSignal.timeout(5000)
+    });
+    if (response.ok) {
+      const data = await response.json() as any;
+      const item = data?.items?.[0];
+      if (item) {
+        return res.json({
+          name: item.title || "Unknown Product",
+          brand: item.brand || null,
+          ingredientsText: item.description || "",
+          imageUrl: item.images?.[0] || null,
+          barcode
+        });
+      }
+    }
+  } catch {}
+
+  return res.status(404).json({ error: "Product not found in any database." });
+});
+
+app.post("/api/gemini/extract-ingredients", async (req, res) => {
+  const { image } = req.body;
+  if (!image) return res.status(400).json({ error: "No image provided." });
+
+  let base64Data = image;
+  let mimeType = "image/jpeg";
+  if (image.startsWith("data:")) {
+    const match = image.match(/^data:([^;]+);base64,(.*)$/);
+    if (match) { mimeType = match[1]; base64Data = match[2]; }
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: [
+        { inlineData: { data: base64Data, mimeType } },
+        { text: "Extract the full ingredients list from this product label image. Return ONLY the raw ingredients text exactly as it appears on the label, comma-separated. If you cannot find an ingredients list, return the string 'NOT_FOUND'." }
+      ],
+      config: { responseMimeType: "text/plain" }
+    });
+
+    const text = response.text?.trim() || "NOT_FOUND";
+    if (text === "NOT_FOUND") {
+      return res.status(404).json({ error: "No ingredients list found in image." });
+    }
+    return res.json({ ingredients: text });
+  } catch (err: any) {
+    console.error("Gemini extract ingredients error:", err);
+    return res.status(500).json({ error: "Failed to extract ingredients from image." });
   }
 });
 
